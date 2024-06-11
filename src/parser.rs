@@ -260,48 +260,59 @@ impl<'a> Parser<'a> {
 
     fn parse_spans(&mut self) -> Vec<Span> {
         let mut spans = Vec::new();
+        let mut text = String::new();
         while !self.chs.is_empty() && !self.starts_with_newline_next() {
             // link
             if self.starts_with_next("[") {
+                spans.push(Text { text: text.clone() }); text.clear();
                 spans.push(self.parse_link());
                 continue;
             }
 
             // strong
             if self.starts_with_next("**") {
+                spans.push(Text { text: text.clone() }); text.clear();
                 spans.push(self.parse_strong('*'));
                 continue;
             }
             if self.starts_with_next("__") {
+                spans.push(Text { text: text.clone() }); text.clear();
                 spans.push(self.parse_strong('_'));
                 continue;
             }
 
             // emphasis
             if self.starts_with_next("*") {
+                spans.push(Text { text: text.clone() }); text.clear();
                 spans.push(self.parse_emphasis('*'));
                 continue;
             }
             if self.starts_with_next("_") {
+                spans.push(Text { text: text.clone() }); text.clear();
                 spans.push(self.parse_emphasis('_'));
                 continue;
             }
 
             // math
             if self.starts_with_next("$") {
+                spans.push(Text { text: text.clone() }); text.clear();
                 spans.push(self.parse_math());
                 continue;
             }
 
             // code
             if self.starts_with_next("`") {
+                spans.push(Text { text: text.clone() }); text.clear();
                 spans.push(self.parse_code());
                 continue;
             }
 
             // text
-            spans.push(self.parse_text());
+            if let Some(c) = self.next_char_until_newline() {
+                text.push_str(&self.escape(c));
+            }
         }
+        spans.push(Text { text });
         spans
     }
 
@@ -398,14 +409,6 @@ impl<'a> Parser<'a> {
             code.push_str(&self.escape(c));
         }
         Text { text: String::from("`") }
-    }
-
-    fn parse_text(&mut self) -> Span {
-        let mut text = String::new();
-        while let Some(c) = self.next_char_except("[*_$`\r\n") {
-            text.push_str(&self.escape(c));
-        }
-        Text { text }
     }
 
     fn next_char_until(&mut self, until: &str) -> Option<char> {
