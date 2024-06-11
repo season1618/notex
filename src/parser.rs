@@ -312,30 +312,22 @@ impl<'a> Parser<'a> {
     fn parse_link(&mut self) -> Span {
         let mut text = String::new();
         let mut url = String::new();
-        let mut chs = self.chs;
 
-        loop {
-            match uncons_except_newline(chs) {
-                Some((']', rest)) => { chs = rest; break; },
-                Some((c, rest)) => { chs = rest; text.push_str(&self.escape(c)); },
-                None => { return Text { text: String::from("[") }; },
+        while !self.starts_with_next("](") {
+            if let Some(c) = self.next_char_until_newline() {
+                text.push_str(&self.escape(c));
+            } else {
+                break;
             }
         }
 
-        match uncons_except_newline(chs) {
-            Some(('(', rest)) => { chs = rest; },
-            _ => { return Text { text: String::from("[") }; },
-        }
-
-        loop {
-            match uncons_except_newline(chs) {
-                Some((')', rest)) => { chs = rest; break; },
-                Some((c, rest)) => { chs = rest; url.push(c); },
-                None => { return Text { text: String::from("[") }; },
+        while !self.starts_with_next(")") {
+            if let Some(c) = self.next_char_until_newline() {
+                url.push(c);
+            } else {
+                break;
             }
         }
-
-        self.chs = chs;
 
         if text.is_empty() {
             text = get_title(&url);
@@ -453,20 +445,6 @@ fn uncons<'a>(chs: &'a str) -> Option<(char, &'a str)> {
         return Some((c, &chs[i..]));
     }
     None
-}
-
-fn uncons_except<'a>(chs: &'a str, except: &str) -> Option<(char, &'a str)> {
-    if let Some(c) = chs.chars().nth(0) {
-        if !except.contains(c) {
-            let i = if let Some((i, _)) = chs.char_indices().nth(1) { i } else { chs.len() };
-            return Some((c, &chs[i..]));
-        }
-    }
-    None
-}
-
-fn uncons_except_newline<'a>(chs: &'a str) -> Option<(char, &'a str)> {
-    uncons_except(chs, "\r\n")
 }
 
 #[tokio::main]
