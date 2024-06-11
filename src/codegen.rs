@@ -51,7 +51,7 @@ impl<'a> CodeGen<'a> {
         writeln!(self.dest)?;
         for block in content {
             match block {
-                Header { spans, level, id } => { self.gen_header(spans, level, id, indent)?; },
+                Header { prims, level, id } => { self.gen_header(prims, level, id, indent)?; },
                 Blockquote { lines } => { self.gen_blockquote(lines, indent)?; },
                 ListElement(list) => { self.gen_list(list, indent)?; },
                 Image { url } => { self.gen_image(url, indent)?; },
@@ -65,9 +65,11 @@ impl<'a> CodeGen<'a> {
         Ok(())
     }
 
-    fn gen_header(&mut self, spans: &Vec<Span>, level: &u32, id: &String, indent: usize) -> Result<(), io::Error> {
+    fn gen_header(&mut self, prims: &Vec<Prim>, level: &u32, id: &String, indent: usize) -> Result<(), io::Error> {
         write!(self.dest, "{:>indent$}<h{} id=\"{}\">", " ", *level, *id)?;
-        self.gen_spans(spans)?;
+        for prim in prims {
+            self.gen_primary(prim)?;
+        }
         writeln!(self.dest, "</h{}>", *level)
     }
 

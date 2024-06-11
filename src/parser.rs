@@ -104,29 +104,27 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_header(&mut self, level: u32) -> Block {
-        let spans = self.parse_spans();
+        let mut prims = Vec::new();
         let mut header = String::new();
-        for span in &spans {
-            match span {
-                Bold { text } => { header.push_str(text); },
-                Ital { text } => { header.push_str(text); },
-                PrimElem(prim) => {
-                    match prim {
-                        Link { text, .. } => {
-                            for prim in text {
-                                match prim {
-                                    Math { math } => header.push_str(math),
-                                    Code { code } => header.push_str(code),
-                                    Text { text } => header.push_str(text),
-                                    _ => {},
-                                }
-                            }
-                        },
-                        Math { math } => { header.push_str(&format!("\\({}\\)", math)) },
-                        Code { code } => { header.push_str(code); },
-                        Text { text } => { header.push_str(text); },
+
+        while !self.starts_with_newline_next() {
+            prims.push(self.parse_primary());
+        }
+        for prim in &prims {
+            match prim {
+                Link { text, .. } => {
+                    for prim in text {
+                        match prim {
+                            Math { math } => header.push_str(math),
+                            Code { code } => header.push_str(code),
+                            Text { text } => header.push_str(text),
+                            _ => {},
+                        }
                     }
                 },
+                Math { math } => { header.push_str(&format!("\\({}\\)", math)) },
+                Code { code } => { header.push_str(code); },
+                Text { text } => { header.push_str(text); },
             }
         }
 
@@ -147,7 +145,7 @@ impl<'a> Parser<'a> {
                 list: List { ordered: true, items: Vec::new() },
             });
         }
-        Header { spans, level, id }
+        Header { prims, level, id }
     }
 
     fn parse_blockquote(&mut self) -> Block {

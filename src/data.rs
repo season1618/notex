@@ -1,6 +1,6 @@
 #[derive(Debug)]
 pub enum Block {
-    Header { spans: Vec<Span>, level: u32, id: String },
+    Header { prims: Vec<Prim>, level: u32, id: String },
     Blockquote { lines: Vec<Vec<Span>> },
     ListElement(List),
     Image { url: String },
