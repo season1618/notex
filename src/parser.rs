@@ -359,30 +359,18 @@ impl<'a> Parser<'a> {
 
     fn parse_math(&mut self) -> Span {
         let mut math = String::new();
-        let mut chs = self.chs;
-        while let Some((c, rest)) = uncons_except_newline(chs) {
-            if c == '$' {
-                self.chs = rest;
-                return Math { math };
-            }
-            chs = rest;
+        while let Some(c) = self.next_char_until("$") {
             math.push_str(&self.escape(c));
         }
-        Text { text: String::from("$") }
+        Math { math }
     }
 
     fn parse_code(&mut self) -> Span {
         let mut code = String::new();
-        let mut chs = self.chs;
-        while let Some((c, rest)) = uncons_except_newline(chs) {
-            if c == '`' {
-                self.chs = rest;
-                return Code { code };
-            }
-            chs = rest;
+        while let Some(c) = self.next_char_until("`") {
             code.push_str(&self.escape(c));
         }
-        Text { text: String::from("`") }
+        Code { code }
     }
 
     fn next_char_until(&mut self, until: &str) -> Option<char> {
