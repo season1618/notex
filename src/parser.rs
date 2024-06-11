@@ -245,9 +245,9 @@ impl<'a> Parser<'a> {
                     None      => break,
                 }
             }
-            row.push(data);
+            row.push(data.trim_start().trim_end().to_string());
         }
-        if row.iter().all(|s| s.chars().all(|c| c == '-' || c == ' ')) {
+        if row.iter().all(|s| s.chars().all(|c| c == '-')) {
             return None;
         }
         Some(row)
