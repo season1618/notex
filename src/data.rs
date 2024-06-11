@@ -15,12 +15,12 @@ pub enum Block {
 pub enum Span {
     Bold { text: String },
     Ital { text: String },
-    Link { text: Vec<Prim>, url: String },
     PrimElem(Prim),
 }
 
 #[derive(Clone, Debug)]
 pub enum Prim {
+    Link { text: Vec<Prim>, url: String },
     Math { math: String },
     Code { code: String },
     Text { text: String },

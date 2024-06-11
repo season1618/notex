@@ -108,19 +108,20 @@ impl<'a> Parser<'a> {
         let mut header = String::new();
         for span in &spans {
             match span {
-                Link { text, .. } => {
-                    for prim in text {
-                        match prim {
-                            Math { math } => header.push_str(math),
-                            Code { code } => header.push_str(code),
-                            Text { text } => header.push_str(text),
-                        }
-                    }
-                },
                 Bold { text } => { header.push_str(text); },
                 Ital { text } => { header.push_str(text); },
                 PrimElem(prim) => {
                     match prim {
+                        Link { text, .. } => {
+                            for prim in text {
+                                match prim {
+                                    Math { math } => header.push_str(math),
+                                    Code { code } => header.push_str(code),
+                                    Text { text } => header.push_str(text),
+                                    _ => {},
+                                }
+                            }
+                        },
                         Math { math } => { header.push_str(&format!("\\({}\\)", math)) },
                         Code { code } => { header.push_str(code); },
                         Text { text } => { header.push_str(text); },
@@ -142,7 +143,7 @@ impl<'a> Parser<'a> {
                 cur = &mut cur.items.last_mut().unwrap().list;
             }
             cur.items.push(ListItem {
-                spans: vec![ Link { text: vec![ Text { text: header.clone() } ], url: href.clone() }],
+                spans: vec![ PrimElem(Link { text: vec![ Text { text: header.clone() } ], url: href.clone() }) ],
                 list: List { ordered: true, items: Vec::new() },
             });
         }
@@ -285,37 +286,10 @@ impl<'a> Parser<'a> {
                 continue;
             }
 
-            // link
-            spans.push(self.parse_link());
+            // primary
+            spans.push(PrimElem(self.parse_primary()));
         }
         spans
-    }
-
-    fn parse_link(&mut self) -> Span {
-        if !self.starts_with_next("[") {
-            return PrimElem(self.parse_primary());
-        }
-
-        let mut text = Vec::new();
-        let mut url = String::new();
-
-        while !self.starts_with_next("](") {
-            text.push(self.parse_primary());
-        }
-
-        while !self.starts_with_next(")") {
-            if let Some(c) = self.next_char_until_newline() {
-                url.push(c);
-            } else {
-                break;
-            }
-        }
-
-        if text.is_empty() {
-            text = vec![ Text { text: get_title(&url) } ];
-        }
-
-        Link { text, url }
     }
 
     fn parse_bold(&mut self) -> Span {
@@ -335,6 +309,38 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_primary(&mut self) -> Prim {
+        // link
+        if self.starts_with_next("[") {
+            self.parse_link()
+        } else {
+            self.parse_subprimary()
+        }
+    }
+
+    fn parse_link(&mut self) -> Prim {
+        let mut text = Vec::new();
+        let mut url = String::new();
+
+        while !self.starts_with_next("](") {
+            text.push(self.parse_subprimary());
+        }
+
+        while !self.starts_with_next(")") {
+            if let Some(c) = self.next_char_until_newline() {
+                url.push(c);
+            } else {
+                break;
+            }
+        }
+
+        if text.is_empty() {
+            text = vec![ Text { text: get_title(&url) } ];
+        }
+
+        Link { text, url }
+    }
+
+    fn parse_subprimary(&mut self) -> Prim {
         // math
         if self.starts_with_next("$") {
             return self.parse_math();

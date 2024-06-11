@@ -164,21 +164,12 @@ impl<'a> CodeGen<'a> {
     fn gen_spans(&mut self, spans: &Vec<Span>) -> Result<(), io::Error> {
         for span in spans {
             match span {
-                Link { text, url } => { self.gen_link(text, url)?; },
                 Bold { text } => { self.gen_bold(text)?; },
                 Ital { text } => { self.gen_ital(text)?; },
                 PrimElem(prim) => { self.gen_primary(prim)?; },
             }
         }
         Ok(())
-    }
-
-    fn gen_link(&mut self, text: &Vec<Prim>, url: &String) -> Result<(), io::Error> {
-        write!(self.dest, "<a href=\"{}\">", *url)?;
-        for prim in text {
-            self.gen_primary(prim)?;
-        }
-        write!(self.dest, "</a>")
     }
 
     fn gen_bold(&mut self, text: &String) -> Result<(), io::Error> {
@@ -191,6 +182,13 @@ impl<'a> CodeGen<'a> {
 
     fn gen_primary(&mut self, prim: &Prim) -> Result<(), io::Error> {
         match prim {
+            Link { text, url } => {
+                write!(self.dest, "<a href=\"{}\">", *url)?;
+                for prim in text {
+                    self.gen_primary(prim)?;
+                }
+                write!(self.dest, "</a>")
+            },
             Math { math } => write!(self.dest, "\\({}\\)", *math),
             Code { code } => write!(self.dest, "<code>{}</code>", *code),
             Text { text } => write!(self.dest, "{}", text),
