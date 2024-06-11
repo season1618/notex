@@ -164,8 +164,8 @@ impl<'a> CodeGen<'a> {
         for span in spans {
             match span {
                 Link { text, url } => { self.gen_link(text, url)?; },
-                Emphasis { text } => { self.gen_emphasis(text)?; },
-                Strong { text } => { self.gen_strong(text)?; },
+                Bold { text } => { self.gen_bold(text)?; },
+                Ital { text } => { self.gen_ital(text)?; },
                 Math { math } => { self.gen_math(math)?; },
                 Code { code } => { self.gen_code(code)?; },
                 Text { text } => { self.gen_text(text)?; },
@@ -178,12 +178,12 @@ impl<'a> CodeGen<'a> {
         write!(self.dest, "<a href=\"{}\">{}</a>", *url, *text)
     }
 
-    fn gen_emphasis(&mut self, text: &String) -> Result<(), io::Error> {
-        write!(self.dest, "<em>{}</em>", *text)
+    fn gen_bold(&mut self, text: &String) -> Result<(), io::Error> {
+        write!(self.dest, "<strong>{}</strong>", *text)
     }
 
-    fn gen_strong(&mut self, text: &String) -> Result<(), io::Error> {
-        write!(self.dest, "<strong>{}</strong>", *text)
+    fn gen_ital(&mut self, text: &String) -> Result<(), io::Error> {
+        write!(self.dest, "<em>{}</em>", *text)
     }
 
     fn gen_math(&mut self, math: &String) -> Result<(), io::Error> {

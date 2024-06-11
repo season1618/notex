@@ -108,11 +108,11 @@ impl<'a> Parser<'a> {
         for span in &spans {
             match span {
                 Link { text, .. } => { header.push_str(text); },
-                Emphasis { text, .. } => { header.push_str(text); },
+                Bold { text } => { header.push_str(text); },
+                Ital { text } => { header.push_str(text); },
                 Math { math } => { header.push_str(&format!("\\({}\\)", math)) },
                 Code { code } => { header.push_str(code); },
                 Text { text } => { header.push_str(text); },
-                _ => {},
             }
         }
 
@@ -269,17 +269,17 @@ impl<'a> Parser<'a> {
                 continue;
             }
 
-            // strong
+            // bold
             if self.starts_with_next("**") {
                 spans.push(Text { text: text.clone() }); text.clear();
-                spans.push(self.parse_strong());
+                spans.push(self.parse_bold());
                 continue;
             }
 
-            // emphasis
+            // italic
             if self.starts_with_next("__") {
                 spans.push(Text { text: text.clone() }); text.clear();
-                spans.push(self.parse_emphasis());
+                spans.push(self.parse_italic());
                 continue;
             }
 
@@ -341,20 +341,20 @@ impl<'a> Parser<'a> {
         Link { text, url }
     }
 
-    fn parse_strong(&mut self) -> Span {
+    fn parse_bold(&mut self) -> Span {
         let mut text = String::new();
         while let Some(c) = self.next_char_until("**") {
             text.push_str(&self.escape(c));
         }
-        Strong { text }
+        Bold { text }
     }
 
-    fn parse_emphasis(&mut self) -> Span {
+    fn parse_italic(&mut self) -> Span {
         let mut text = String::new();
         while let Some(c) = self.next_char_until("__") {
             text.push_str(&self.escape(c));
         }
-        Emphasis { text }
+        Ital { text }
     }
 
     fn parse_math(&mut self) -> Span {

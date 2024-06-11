@@ -14,8 +14,8 @@ pub enum Block {
 #[derive(Clone, Debug)]
 pub enum Span {
     Link { text: String, url: String },
-    Emphasis { text: String },
-    Strong { text: String },
+    Bold { text: String },
+    Ital { text: String },
     Math { math: String },
     Code { code: String },
     Text { text: String },
