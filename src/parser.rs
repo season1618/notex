@@ -69,7 +69,7 @@ impl<'a> Parser<'a> {
         }
 
         // list
-        if self.chs.starts_with("+ ") || self.chs.starts_with("- ") || self.chs.starts_with("* ") || self.starts_with_num() {
+        if self.chs.starts_with("+ ") || self.chs.starts_with("- ") {
             return ListElement(self.parse_list(0));
         }
 
@@ -162,7 +162,7 @@ impl<'a> Parser<'a> {
             if min_indent <= indent {
                 self.chs = chs;
 
-                if self.starts_with_next("+ ") || self.starts_with_next("- ") || self.starts_with_next("* ") {
+                if self.starts_with_next("- ") {
                     ordered = false;
                     items.push(ListItem {
                         spans: self.parse_spans(),
@@ -171,7 +171,7 @@ impl<'a> Parser<'a> {
                     continue;
                 }
 
-                if self.starts_with_num_next() {
+                if self.starts_with_next("+ ") {
                     ordered = true;
                     items.push(ListItem {
                         spans: self.parse_spans(),
@@ -448,21 +448,6 @@ impl<'a> Parser<'a> {
             }
         }
         None
-    }
-
-    fn starts_with_num(&self) -> bool {
-        let chs = self.chs.trim_start_matches(|c: char| c.is_ascii_digit());
-        chs.strip_prefix(". ").is_some()
-    }
-
-    fn starts_with_num_next(&mut self) -> bool {
-        let chs = self.chs.trim_start_matches(|c: char| c.is_ascii_digit());
-        if let Some(chs) = chs.strip_prefix(". ") {
-            self.chs = chs;
-            true
-        } else {
-            false
-        }
     }
 
     fn starts_with_next(&mut self, prefix: &str) -> bool {
