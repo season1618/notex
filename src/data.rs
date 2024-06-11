@@ -16,6 +16,11 @@ pub enum Span {
     Link { text: String, url: String },
     Bold { text: String },
     Ital { text: String },
+    PrimElem(Prim),
+}
+
+#[derive(Clone, Debug)]
+pub enum Prim {
     Math { math: String },
     Code { code: String },
     Text { text: String },

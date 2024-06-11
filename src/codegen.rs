@@ -6,6 +6,7 @@ use crate::data::*;
 
 use Block::*;
 use Span::*;
+use Prim::*;
 use Elem::*;
 
 pub fn gen_html(dest: &mut File, title: &String, toc: &List, content: &Vec<Block>, template: &Vec<Elem>) -> Result<(), io::Error> {
@@ -166,9 +167,13 @@ impl<'a> CodeGen<'a> {
                 Link { text, url } => { self.gen_link(text, url)?; },
                 Bold { text } => { self.gen_bold(text)?; },
                 Ital { text } => { self.gen_ital(text)?; },
-                Math { math } => { self.gen_math(math)?; },
-                Code { code } => { self.gen_code(code)?; },
-                Text { text } => { self.gen_text(text)?; },
+                PrimElem(prim) => {
+                    match prim {
+                        Math { math } => { self.gen_math(math)?; },
+                        Code { code } => { self.gen_code(code)?; },
+                        Text { text } => { self.gen_text(text)?; },
+                    }
+                },
             }
         }
         Ok(())

@@ -6,6 +6,7 @@ use crate::data::*;
 use crate::multiset::MultiSet;
 use Block::*;
 use Span::*;
+use Prim::*;
 
 pub fn parse_markdown(doc: &str) -> (String, List, Vec<Block>) {
     let mut parser = Parser::new(doc);
@@ -110,9 +111,13 @@ impl<'a> Parser<'a> {
                 Link { text, .. } => { header.push_str(text); },
                 Bold { text } => { header.push_str(text); },
                 Ital { text } => { header.push_str(text); },
-                Math { math } => { header.push_str(&format!("\\({}\\)", math)) },
-                Code { code } => { header.push_str(code); },
-                Text { text } => { header.push_str(text); },
+                PrimElem(prim) => {
+                    match prim {
+                        Math { math } => { header.push_str(&format!("\\({}\\)", math)) },
+                        Code { code } => { header.push_str(code); },
+                        Text { text } => { header.push_str(text); },
+                    }
+                },
             }
         }
 
@@ -263,36 +268,36 @@ impl<'a> Parser<'a> {
         while !self.chs.is_empty() && !self.starts_with_newline_next() {
             // link
             if self.starts_with_next("[") {
-                spans.push(Text { text: text.clone() }); text.clear();
+                spans.push(PrimElem(Text { text: text.clone() })); text.clear();
                 spans.push(self.parse_link());
                 continue;
             }
 
             // bold
             if self.starts_with_next("**") {
-                spans.push(Text { text: text.clone() }); text.clear();
+                spans.push(PrimElem(Text { text: text.clone() })); text.clear();
                 spans.push(self.parse_bold());
                 continue;
             }
 
             // italic
             if self.starts_with_next("__") {
-                spans.push(Text { text: text.clone() }); text.clear();
+                spans.push(PrimElem(Text { text: text.clone() })); text.clear();
                 spans.push(self.parse_italic());
                 continue;
             }
 
             // math
             if self.starts_with_next("$") {
-                spans.push(Text { text: text.clone() }); text.clear();
-                spans.push(self.parse_math());
+                spans.push(PrimElem(Text { text: text.clone() })); text.clear();
+                spans.push(PrimElem(self.parse_math()));
                 continue;
             }
 
             // code
             if self.starts_with_next("`") {
-                spans.push(Text { text: text.clone() }); text.clear();
-                spans.push(self.parse_code());
+                spans.push(PrimElem(Text { text: text.clone() })); text.clear();
+                spans.push(PrimElem(self.parse_code()));
                 continue;
             }
 
@@ -301,7 +306,7 @@ impl<'a> Parser<'a> {
                 text.push_str(&self.escape(c));
             }
         }
-        spans.push(Text { text });
+        spans.push(PrimElem(Text { text }));
         spans
     }
 
@@ -348,7 +353,7 @@ impl<'a> Parser<'a> {
         Ital { text }
     }
 
-    fn parse_math(&mut self) -> Span {
+    fn parse_math(&mut self) -> Prim {
         let mut math = String::new();
         while let Some(c) = self.next_char_until("$") {
             math.push_str(&self.escape(c));
@@ -356,7 +361,7 @@ impl<'a> Parser<'a> {
         Math { math }
     }
 
-    fn parse_code(&mut self) -> Span {
+    fn parse_code(&mut self) -> Prim {
         let mut code = String::new();
         while let Some(c) = self.next_char_until("`") {
             code.push_str(&self.escape(c));
