@@ -191,21 +191,9 @@ impl<'a> CodeGen<'a> {
 
     fn gen_primary(&mut self, prim: &Prim) -> Result<(), io::Error> {
         match prim {
-            Math { math } => self.gen_math(math),
-            Code { code } => self.gen_code(code),
-            Text { text } => self.gen_text(text),
+            Math { math } => write!(self.dest, "\\({}\\)", *math),
+            Code { code } => write!(self.dest, "<code>{}</code>", *code),
+            Text { text } => write!(self.dest, "{}", text),
         }
-    }
-
-    fn gen_math(&mut self, math: &String) -> Result<(), io::Error> {
-        write!(self.dest, "\\({}\\)", *math)
-    }
-
-    fn gen_code(&mut self, code: &String) -> Result<(), io::Error> {
-        write!(self.dest, "<code>{}</code>", *code)
-    }
-
-    fn gen_text(&mut self, text: &String) -> Result<(), io::Error> {
-        write!(self.dest, "{}", text)
     }
 }
