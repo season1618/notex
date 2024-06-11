@@ -272,24 +272,14 @@ impl<'a> Parser<'a> {
             // strong
             if self.starts_with_next("**") {
                 spans.push(Text { text: text.clone() }); text.clear();
-                spans.push(self.parse_strong('*'));
-                continue;
-            }
-            if self.starts_with_next("__") {
-                spans.push(Text { text: text.clone() }); text.clear();
-                spans.push(self.parse_strong('_'));
+                spans.push(self.parse_strong());
                 continue;
             }
 
             // emphasis
-            if self.starts_with_next("*") {
+            if self.starts_with_next("__") {
                 spans.push(Text { text: text.clone() }); text.clear();
-                spans.push(self.parse_emphasis('*'));
-                continue;
-            }
-            if self.starts_with_next("_") {
-                spans.push(Text { text: text.clone() }); text.clear();
-                spans.push(self.parse_emphasis('_'));
+                spans.push(self.parse_emphasis());
                 continue;
             }
 
@@ -351,36 +341,20 @@ impl<'a> Parser<'a> {
         Link { text, url }
     }
 
-    fn parse_strong(&mut self, d: char) -> Span {
+    fn parse_strong(&mut self) -> Span {
         let mut text = String::new();
-        let mut chs = self.chs;
-        while let Some((c, rest)) = uncons_except_newline(chs) {
-            if c == d {
-                self.chs = rest;
-                if self.starts_with_next(&d.to_string()) {
-                    return Strong { text };
-                } else {
-                    return Emphasis { text };
-                }
-            }
-            chs = rest;
+        while let Some(c) = self.next_char_until("**") {
             text.push_str(&self.escape(c));
         }
-        Text { text: format!("{0}{0}", d) }
+        Strong { text }
     }
 
-    fn parse_emphasis(&mut self, d: char) -> Span {
+    fn parse_emphasis(&mut self) -> Span {
         let mut text = String::new();
-        let mut chs = self.chs;
-        while let Some((c, rest)) = uncons_except_newline(chs) {
-            if c == d {
-                self.chs = rest;
-                return Emphasis { text };
-            }
-            chs = rest;
+        while let Some(c) = self.next_char_until("__") {
             text.push_str(&self.escape(c));
         }
-        Text { text: d.to_string() }
+        Emphasis { text }
     }
 
     fn parse_math(&mut self) -> Span {
