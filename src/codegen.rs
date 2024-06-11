@@ -167,20 +167,18 @@ impl<'a> CodeGen<'a> {
                 Link { text, url } => { self.gen_link(text, url)?; },
                 Bold { text } => { self.gen_bold(text)?; },
                 Ital { text } => { self.gen_ital(text)?; },
-                PrimElem(prim) => {
-                    match prim {
-                        Math { math } => { self.gen_math(math)?; },
-                        Code { code } => { self.gen_code(code)?; },
-                        Text { text } => { self.gen_text(text)?; },
-                    }
-                },
+                PrimElem(prim) => { self.gen_primary(prim)?; },
             }
         }
         Ok(())
     }
 
-    fn gen_link(&mut self, text: &String, url: &String) -> Result<(), io::Error> {
-        write!(self.dest, "<a href=\"{}\">{}</a>", *url, *text)
+    fn gen_link(&mut self, text: &Vec<Prim>, url: &String) -> Result<(), io::Error> {
+        write!(self.dest, "<a href=\"{}\">", *url)?;
+        for prim in text {
+            self.gen_primary(prim)?;
+        }
+        write!(self.dest, "</a>")
     }
 
     fn gen_bold(&mut self, text: &String) -> Result<(), io::Error> {
@@ -189,6 +187,14 @@ impl<'a> CodeGen<'a> {
 
     fn gen_ital(&mut self, text: &String) -> Result<(), io::Error> {
         write!(self.dest, "<em>{}</em>", *text)
+    }
+
+    fn gen_primary(&mut self, prim: &Prim) -> Result<(), io::Error> {
+        match prim {
+            Math { math } => self.gen_math(math),
+            Code { code } => self.gen_code(code),
+            Text { text } => self.gen_text(text),
+        }
     }
 
     fn gen_math(&mut self, math: &String) -> Result<(), io::Error> {

@@ -13,9 +13,9 @@ pub enum Block {
 
 #[derive(Clone, Debug)]
 pub enum Span {
-    Link { text: String, url: String },
     Bold { text: String },
     Ital { text: String },
+    Link { text: Vec<Prim>, url: String },
     PrimElem(Prim),
 }
 
