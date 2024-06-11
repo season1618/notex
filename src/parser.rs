@@ -150,13 +150,9 @@ impl<'a> Parser<'a> {
         while !self.chs.is_empty() {
             let mut indent = 0;
             let mut chs = self.chs;
-            while let Some((c, rest)) = uncons(chs) {
-                if c == ' ' {
-                    chs = rest;
-                    indent += 1;
-                } else {
-                    break;
-                }
+            while let Some(rest) = chs.strip_prefix(" ") {
+                chs = rest;
+                indent += 1;
             }
 
             if min_indent <= indent {
@@ -437,14 +433,6 @@ impl<'a> Parser<'a> {
             _ => c.to_string(),
         }
     }
-}
-
-fn uncons<'a>(chs: &'a str) -> Option<(char, &'a str)> {
-    if let Some(c) = chs.chars().nth(0) {
-        let i = if let Some((i, _)) = chs.char_indices().nth(1) { i } else { chs.len() };
-        return Some((c, &chs[i..]));
-    }
-    None
 }
 
 #[tokio::main]
