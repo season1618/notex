@@ -242,11 +242,14 @@ impl<'a> Parser<'a> {
         let mut row: Vec<String> = Vec::new();
         while !self.chs.is_empty() && !self.starts_with_newline_next() {
             let mut data = String::new();
-            while let Some(c) = self.next_char_except("|\r\n") {
-                data.push_str(&self.escape(c));
+            loop {
+                match self.next_char() {
+                    Some('|') => break,
+                    Some(c)   => data.push_str(&self.escape(c)),
+                    None      => break,
+                }
             }
             row.push(data);
-            self.starts_with_next("|");
         }
         if row.iter().all(|s| s.chars().all(|c| c == '-' || c == ' ')) {
             return None;
@@ -373,6 +376,16 @@ impl<'a> Parser<'a> {
         Code { code }
     }
 
+    fn next_char(&mut self) -> Option<char> {
+        let mut chs = self.chs.chars();
+        if let Some(c) = chs.next() {
+            self.chs = chs.as_str();
+            Some(c)
+        } else {
+            None
+        }
+    }
+
     fn next_char_until(&mut self, until: &str) -> Option<char> {
         if self.chs.starts_with(until) {
             let len = until.chars().count();
@@ -400,17 +413,6 @@ impl<'a> Parser<'a> {
             let i = if let Some((i, _)) = self.chs.char_indices().nth(1) { i } else { self.chs.len() };
             self.chs = &self.chs[i..];
             return Some(c);
-        }
-        None
-    }
-
-    fn next_char_except(&mut self, except: &str) -> Option<char> {
-        if let Some(c) = self.chs.chars().nth(0) {
-            if !except.contains(c) {
-                let i = if let Some((i, _)) = self.chs.char_indices().nth(1) { i } else { self.chs.len() };
-                self.chs = &self.chs[i..];
-                return Some(c);
-            }
         }
         None
     }
