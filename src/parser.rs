@@ -274,13 +274,13 @@ impl<'a> Parser<'a> {
         let mut spans = Vec::new();
         while !self.chs.is_empty() && !self.starts_with_newline_next() {
             // bold
-            if self.starts_with_next("**") {
+            if self.chs.starts_with("**") {
                 spans.push(self.parse_bold());
                 continue;
             }
 
             // italic
-            if self.starts_with_next("__") {
+            if self.chs.starts_with("__") {
                 spans.push(self.parse_italic());
                 continue;
             }
@@ -292,19 +292,27 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_bold(&mut self) -> Span {
-        let mut text = String::new();
-        while let Some(c) = self.next_char_until("**") {
-            text.push_str(&self.escape(c));
+        if self.starts_with_next("**") {
+            let mut text = Vec::new();
+            while !self.starts_with_next("**") {
+                text.push(self.parse_italic());
+            }
+            Bold { text }
+        } else {
+            PrimElem(self.parse_primary())
         }
-        Bold { text }
     }
 
     fn parse_italic(&mut self) -> Span {
-        let mut text = String::new();
-        while let Some(c) = self.next_char_until("__") {
-            text.push_str(&self.escape(c));
+        if self.starts_with_next("__") {
+            let mut text = Vec::new();
+            while !self.starts_with_next("__") {
+                text.push(self.parse_bold());
+            }
+            Ital { text }
+        } else {
+            PrimElem(self.parse_primary())
         }
-        Ital { text }
     }
 
     fn parse_primary(&mut self) -> Prim {

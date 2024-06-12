@@ -177,12 +177,16 @@ impl<'a> CodeGen<'a> {
         Ok(())
     }
 
-    fn gen_bold(&mut self, text: &String) -> Result<(), io::Error> {
-        write!(self.dest, "<strong>{}</strong>", *text)
+    fn gen_bold(&mut self, text: &Vec<Span>) -> Result<(), io::Error> {
+        write!(self.dest, "<strong>")?;
+        self.gen_spans(text)?;
+        write!(self.dest, "</strong>")
     }
 
-    fn gen_ital(&mut self, text: &String) -> Result<(), io::Error> {
-        write!(self.dest, "<em>{}</em>", *text)
+    fn gen_ital(&mut self, text: &Vec<Span>) -> Result<(), io::Error> {
+        write!(self.dest, "<em>")?;
+        self.gen_spans(text)?;
+        write!(self.dest, "</em>")
     }
 
     fn gen_prims(&mut self, prims: &Vec<Prim>) -> Result<(), io::Error> {

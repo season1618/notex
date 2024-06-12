@@ -13,8 +13,8 @@ pub enum Block {
 
 #[derive(Clone, Debug)]
 pub enum Span {
-    Bold { text: String },
-    Ital { text: String },
+    Bold { text: Vec<Span> },
+    Ital { text: Vec<Span> },
     PrimElem(Prim),
 }
 
