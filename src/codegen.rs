@@ -67,9 +67,7 @@ impl<'a> CodeGen<'a> {
 
     fn gen_header(&mut self, prims: &Vec<Prim>, level: &u32, id: &String, indent: usize) -> Result<(), io::Error> {
         write!(self.dest, "{:>indent$}<h{} id=\"{}\">", " ", *level, *id)?;
-        for prim in prims {
-            self.gen_primary(prim)?;
-        }
+        self.gen_prims(prims)?;
         writeln!(self.dest, "</h{}>", *level)
     }
 
@@ -106,9 +104,7 @@ impl<'a> CodeGen<'a> {
         writeln!(self.dest, "{:>indent$}<div class=\"image\">", " ")?;
         writeln!(self.dest, "{:>indent$}  <img src=\"{}\">", " ", *url)?;
         write!(self.dest, "{:>indent$}  <p class=\"caption\">", " ")?;
-        for prim in title {
-            self.gen_primary(prim)?;
-        }
+        self.gen_prims(title)?;
         writeln!(self.dest, "</p>")?;
         writeln!(self.dest, "{:>indent$}</div>", " ")
     }
@@ -189,13 +185,18 @@ impl<'a> CodeGen<'a> {
         write!(self.dest, "<em>{}</em>", *text)
     }
 
+    fn gen_prims(&mut self, prims: &Vec<Prim>) -> Result<(), io::Error> {
+        for prim in prims {
+            self.gen_primary(prim)?;
+        }
+        Ok(())
+    }
+
     fn gen_primary(&mut self, prim: &Prim) -> Result<(), io::Error> {
         match prim {
             Link { text, url } => {
                 write!(self.dest, "<a href=\"{}\">", *url)?;
-                for prim in text {
-                    self.gen_primary(prim)?;
-                }
+                self.gen_prims(text)?;
                 write!(self.dest, "</a>")
             },
             Math { math } => write!(self.dest, "\\({}\\)", *math),
