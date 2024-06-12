@@ -105,7 +105,7 @@ impl<'a> Parser<'a> {
 
     fn parse_header(&mut self, level: u32) -> Block {
         let mut header_cont = Vec::new();
-        let mut header_toc = String::new();
+        let mut header_toc = Vec::new();
         let mut header_id = String::new();
 
         while !self.starts_with_newline_next() {
@@ -115,35 +115,19 @@ impl<'a> Parser<'a> {
             match prim {
                 Link { text, .. } => {
                     for prim in text {
-                        match prim {
-                            Math { math } => header_toc.push_str(&format!("\\({}\\)", math)),
-                            Code { code } => header_toc.push_str(&format!("<code>{}</code>", code)),
-                            Text { text } => header_toc.push_str(text),
-                            _ => {},
-                        }
+                        header_toc.push(prim.clone());
                     }
                 },
-                Math { math } => { header_toc.push_str(&format!("\\({}\\)", math)) },
-                Code { code } => { header_toc.push_str(&format!("<code>{}</code>", code)); },
-                Text { text } => { header_toc.push_str(text); },
+                _ => header_toc.push(prim.clone()),
             }
         }
 
-        for prim in &header_cont {
+        for prim in &header_toc {
             match prim {
-                Link { text, .. } => {
-                    for prim in text {
-                        match prim {
-                            Math { math } => header_id.push_str(math),
-                            Code { code } => header_id.push_str(code),
-                            Text { text } => header_id.push_str(text),
-                            _ => {},
-                        }
-                    }
-                },
-                Math { math } => { header_id.push_str(math) },
-                Code { code } => { header_id.push_str(code); },
-                Text { text } => { header_id.push_str(text); },
+                Math { math } => header_id.push_str(math),
+                Code { code } => header_id.push_str(code),
+                Text { text } => header_id.push_str(text),
+                _ => {},
             }
         }
 
@@ -152,14 +136,14 @@ impl<'a> Parser<'a> {
 
         // modify title or table of contents
         if level == 1 {
-            self.title = header_toc.clone();
+            self.title = header_id.clone();
         } else {
             let mut cur = &mut self.toc;
             for _ in 2..level {
                 cur = &mut cur.items.last_mut().unwrap().list;
             }
             cur.items.push(ListItem {
-                spans: vec![ PrimElem(Link { text: vec![ Text { text: header_toc.clone() } ], url: format!("#{}", &header_id) }) ],
+                spans: vec![ PrimElem(Link { text: header_toc, url: format!("#{}", &header_id) }) ],
                 list: List { ordered: true, items: Vec::new() },
             });
         }
