@@ -203,7 +203,8 @@ impl<'a> Parser<'a> {
         }
 
         if url.ends_with(".png") || url.ends_with(".jpg") {
-            Image { url }
+            let title = text;
+            Image { title, url }
         } else {
             let (title, image, description, site_name) = get_ogp_info(&url);
             LinkCard { title, image, url, description, site_name }

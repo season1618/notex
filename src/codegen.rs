@@ -55,7 +55,7 @@ impl<'a> CodeGen<'a> {
                 Blockquote { lines } => self.gen_blockquote(lines, indent)?,
                 ListElement(list) => self.gen_list(list, indent)?,
                 Table { head, body } => self.gen_table(head, body, indent)?,
-                Image { url } => self.gen_image(url, indent)?,
+                Image { title, url } => self.gen_image(title, url, indent)?,
                 LinkCard { title, image, url, description, site_name } => self.gen_link_card(title, image, url, description, site_name, indent)?,
                 MathBlock { math } => self.gen_math_block(math, indent)?,
                 CodeBlock { lang, code } => self.gen_code_block(lang, code, indent)?,
@@ -102,8 +102,15 @@ impl<'a> CodeGen<'a> {
         writeln!(self.dest, "{:>indent$}</{}>", " ", if list.ordered { "ol" } else { "ul" })
     }
 
-    fn gen_image(&mut self, url: &String, indent: usize) -> Result<(), io::Error> {
-        writeln!(self.dest, "{:>indent$}<div class=\"image\"><img src=\"{}\"></div>", " ", *url)
+    fn gen_image(&mut self, title: &Vec<Prim>, url: &String, indent: usize) -> Result<(), io::Error> {
+        writeln!(self.dest, "{:>indent$}<div class=\"image\">", " ")?;
+        writeln!(self.dest, "{:>indent$}  <img src=\"{}\">", " ", *url)?;
+        write!(self.dest, "{:>indent$}  <p class=\"caption\">", " ")?;
+        for prim in title {
+            self.gen_primary(prim)?;
+        }
+        writeln!(self.dest, "</p>")?;
+        writeln!(self.dest, "{:>indent$}</div>", " ")
     }
 
     fn gen_link_card(&mut self, title: &String, image: &Option<String>, url: &String, description: &Option<String>, site_name: &Option<String>, indent: usize) -> Result<(), io::Error> {
