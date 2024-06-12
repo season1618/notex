@@ -104,48 +104,66 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_header(&mut self, level: u32) -> Block {
-        let mut prims = Vec::new();
-        let mut header = String::new();
+        let mut header_cont = Vec::new();
+        let mut header_toc = String::new();
+        let mut header_id = String::new();
 
         while !self.starts_with_newline_next() {
-            prims.push(self.parse_primary());
+            header_cont.push(self.parse_primary());
         }
-        for prim in &prims {
+        for prim in &header_cont {
             match prim {
                 Link { text, .. } => {
                     for prim in text {
                         match prim {
-                            Math { math } => header.push_str(math),
-                            Code { code } => header.push_str(code),
-                            Text { text } => header.push_str(text),
+                            Math { math } => header_toc.push_str(&format!("\\({}\\)", math)),
+                            Code { code } => header_toc.push_str(&format!("<code>{}</code>", code)),
+                            Text { text } => header_toc.push_str(text),
                             _ => {},
                         }
                     }
                 },
-                Math { math } => { header.push_str(&format!("\\({}\\)", math)) },
-                Code { code } => { header.push_str(code); },
-                Text { text } => { header.push_str(text); },
+                Math { math } => { header_toc.push_str(&format!("\\({}\\)", math)) },
+                Code { code } => { header_toc.push_str(&format!("<code>{}</code>", code)); },
+                Text { text } => { header_toc.push_str(text); },
             }
         }
 
-        let count = self.headers.insert(header.clone());
-        let id = if count == 0 { format!("{}", &header) } else { format!("{}-{}", &header, count) };
-        let href = format!("#{}", &id);
+        for prim in &header_cont {
+            match prim {
+                Link { text, .. } => {
+                    for prim in text {
+                        match prim {
+                            Math { math } => header_id.push_str(math),
+                            Code { code } => header_id.push_str(code),
+                            Text { text } => header_id.push_str(text),
+                            _ => {},
+                        }
+                    }
+                },
+                Math { math } => { header_id.push_str(math) },
+                Code { code } => { header_id.push_str(code); },
+                Text { text } => { header_id.push_str(text); },
+            }
+        }
+
+        let count = self.headers.insert(header_id.clone());
+        let header_id = if count == 0 { format!("{}", &header_id) } else { format!("{}-{}", &header_id, count) };
 
         // modify title or table of contents
         if level == 1 {
-            self.title = header.clone();
+            self.title = header_toc.clone();
         } else {
             let mut cur = &mut self.toc;
             for _ in 2..level {
                 cur = &mut cur.items.last_mut().unwrap().list;
             }
             cur.items.push(ListItem {
-                spans: vec![ PrimElem(Link { text: vec![ Text { text: header.clone() } ], url: href.clone() }) ],
+                spans: vec![ PrimElem(Link { text: vec![ Text { text: header_toc.clone() } ], url: format!("#{}", &header_id) }) ],
                 list: List { ordered: true, items: Vec::new() },
             });
         }
-        Header { prims, level, id }
+        Header { prims: header_cont, level, id: header_id }
     }
 
     fn parse_blockquote(&mut self) -> Block {
