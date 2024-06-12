@@ -27,16 +27,16 @@ impl<'a> CodeGen<'a> {
         let datetime = Local::now();
         for chunk in template {
             match chunk {
-                Title => { write!(self.dest, "{}", title)?; },
-                Year => { write!(self.dest, "{:04}", datetime.year())?; },
-                Month => { write!(self.dest, "{:02}", datetime.month())?; },
-                Day => { write!(self.dest, "{:02}", datetime.day())?; },
-                Hour => { write!(self.dest, "{:02}", datetime.hour())?; },
-                Minute => { write!(self.dest, "{:02}", datetime.minute())?; },
-                Second => { write!(self.dest, "{:02}", datetime.second())?; },
-                Toc(indent) => { self.gen_toc(toc, *indent)?; },
-                Content(indent) => { self.gen_content(content, *indent)?; },
-                Str(text) => { write!(self.dest, "{}", text)?; },
+                Title => write!(self.dest, "{}", title)?,
+                Year   => write!(self.dest, "{:04}", datetime.year())?,
+                Month  => write!(self.dest, "{:02}", datetime.month())?,
+                Day    => write!(self.dest, "{:02}", datetime.day())?,
+                Hour   => write!(self.dest, "{:02}", datetime.hour())?,
+                Minute => write!(self.dest, "{:02}", datetime.minute())?,
+                Second => write!(self.dest, "{:02}", datetime.second())?,
+                Toc(indent) => self.gen_toc(toc, *indent)?,
+                Content(indent) => self.gen_content(content, *indent)?,
+                Str(text) => write!(self.dest, "{}", text)?,
             }
         }
         Ok(())
@@ -51,15 +51,15 @@ impl<'a> CodeGen<'a> {
         writeln!(self.dest)?;
         for block in content {
             match block {
-                Header { prims, level, id } => { self.gen_header(prims, level, id, indent)?; },
-                Blockquote { lines } => { self.gen_blockquote(lines, indent)?; },
-                ListElement(list) => { self.gen_list(list, indent)?; },
-                Image { url } => { self.gen_image(url, indent)?; },
-                LinkCard { title, image, url, description, site_name } => { self.gen_link_card(title, image, url, description, site_name, indent)?; },
-                Table { head, body } => { self.gen_table(head, body, indent)?; },
-                Paragraph { spans } => { self.gen_paragraph(spans, indent)?; },
-                MathBlock { math } => { self.gen_math_block(math, indent)?; },
-                CodeBlock { lang, code } => { self.gen_code_block(lang, code, indent)?; },
+                Header { prims, level, id } => self.gen_header(prims, level, id, indent)?,
+                Blockquote { lines } => self.gen_blockquote(lines, indent)?,
+                ListElement(list) => self.gen_list(list, indent)?,
+                Table { head, body } => self.gen_table(head, body, indent)?,
+                Image { url } => self.gen_image(url, indent)?,
+                LinkCard { title, image, url, description, site_name } => self.gen_link_card(title, image, url, description, site_name, indent)?,
+                MathBlock { math } => self.gen_math_block(math, indent)?,
+                CodeBlock { lang, code } => self.gen_code_block(lang, code, indent)?,
+                Paragraph { spans } => self.gen_paragraph(spans, indent)?,
             }
         }
         Ok(())
@@ -166,9 +166,9 @@ impl<'a> CodeGen<'a> {
     fn gen_spans(&mut self, spans: &Vec<Span>) -> Result<(), io::Error> {
         for span in spans {
             match span {
-                Bold { text } => { self.gen_bold(text)?; },
-                Ital { text } => { self.gen_ital(text)?; },
-                PrimElem(prim) => { self.gen_primary(prim)?; },
+                Bold { text } => self.gen_bold(text)?,
+                Ital { text } => self.gen_ital(text)?,
+                PrimElem(prim) => self.gen_primary(prim)?,
             }
         }
         Ok(())
