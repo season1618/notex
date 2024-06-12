@@ -131,13 +131,15 @@ impl<'a> Parser<'a> {
             }
         }
 
-        let count = self.headers.insert(header_id.clone());
-        let header_id = if count == 0 { format!("{}", &header_id) } else { format!("{}-{}", &header_id, count) };
-
         // modify title or table of contents
         if level == 1 {
             self.title = header_id.clone();
         } else {
+            let count = self.headers.insert(header_id.clone());
+            if count > 0 {
+                header_id = format!("{}-{}", &header_id, count);
+            }
+
             let mut cur = &mut self.toc;
             for _ in 2..level {
                 cur = &mut cur.items.last_mut().unwrap().list;
