@@ -74,14 +74,9 @@ impl<'a> Parser<'a> {
             return ListElement(self.parse_list(0));
         }
 
-        // image
-        if self.starts_with_next("![](") {
-            return self.parse_image();
-        }
-
-        // link card
-        if self.starts_with_next("?[](") {
-            return self.parse_link_card();
+        // embed
+        if self.starts_with_next("@[") {
+            return self.parse_embed();
         }
 
         // math block
@@ -197,21 +192,22 @@ impl<'a> Parser<'a> {
         List { ordered, items }
     }
 
-    fn parse_image(&mut self) -> Block {
+    fn parse_embed(&mut self) -> Block {
+        let mut text = Vec::new();
         let mut url = String::new();
+        while !self.starts_with_next("](") {
+            text.push(self.parse_primary());
+        }
         while let Some(c) = self.next_char_until(")") {
             url.push(c);
         }
-        Image { url }
-    }
 
-    fn parse_link_card(&mut self) -> Block {
-        let mut url = String::new();
-        while let Some(c) = self.next_char_until(")") {
-            url.push(c);
+        if url.ends_with(".png") || url.ends_with(".jpg") {
+            Image { url }
+        } else {
+            let (title, image, description, site_name) = get_ogp_info(&url);
+            LinkCard { title, image, url, description, site_name }
         }
-        let (title, image, description, site_name) = get_ogp_info(&url);
-        LinkCard { title, image, url, description, site_name }
     }
 
     fn parse_math_block(&mut self) -> Block {
