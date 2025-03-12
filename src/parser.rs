@@ -194,7 +194,6 @@ impl<'a> Parser<'a> {
         while !self.starts_with_next("](") {
             text.push(self.parse_link());
         }
-        // text = self.parse_spans();
         while let Some(c) = self.next_char_until(")") {
             url.push(c);
         }
