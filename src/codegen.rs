@@ -64,95 +64,103 @@ impl<'a> CodeGen<'a> {
     }
 
     fn gen_header(&mut self, header: &Inline, level: &u32, id: &String, indent: usize) -> Result<(), io::Error> {
-        writeln!(self.dest, "{:>indent$}<h{level} id=\"{id}\">{header}</h{level}>", " ")
+        let indent = " ".repeat(indent);
+        writeln!(self.dest, "{indent}<h{level} id=\"{id}\">{header}</h{level}>")
     }
 
     fn gen_blockquote(&mut self, lines: &Vec<Inline>, indent: usize) -> Result<(), io::Error> {
-        writeln!(self.dest, "{:>indent$}<blockquote>", " ")?;
+        let indent = " ".repeat(indent);
+        writeln!(self.dest, "{indent}<blockquote>")?;
         for line in lines {
-            writeln!(self.dest, "{:>indent$}  <p>{line}</p>", " ")?;
+            writeln!(self.dest, "{indent}  <p>{line}</p>")?;
         }
-        writeln!(self.dest, "{:>indent$}</blockquote>", " ")
+        writeln!(self.dest, "{indent}</blockquote>")
     }
 
-    fn gen_list(&mut self, list: &List, indent: usize) -> Result<(), io::Error> {
+    fn gen_list(&mut self, list: &List, depth: usize) -> Result<(), io::Error> {
         if list.items.is_empty() {
             return Ok(());
         }
 
-        writeln!(self.dest, "{:>indent$}<{}>", " ", if list.ordered { "ol" } else { "ul" })?;
+        let indent = " ".repeat(depth);
+        writeln!(self.dest, "{indent}<{}>", if list.ordered { "ol" } else { "ul" })?;
         for item in &list.items {
-            writeln!(self.dest, "{:>indent$}  <li>", " ")?;
+            writeln!(self.dest, "{indent}  <li>")?;
             
-            writeln!(self.dest, "{:>indent$}    {}", " ", item.spans)?;
-            self.gen_list(&item.list, indent + 4)?;
+            writeln!(self.dest, "{indent}    {}", item.spans)?;
+            self.gen_list(&item.list, depth + 4)?;
             
-            writeln!(self.dest, "{:>indent$}  </li>", " ")?;
+            writeln!(self.dest, "{indent}  </li>")?;
         }
-        writeln!(self.dest, "{:>indent$}</{}>", " ", if list.ordered { "ol" } else { "ul" })
+        writeln!(self.dest, "{indent}</{}>", if list.ordered { "ol" } else { "ul" })
     }
 
     fn gen_image(&mut self, title: &Inline, url: &String, indent: usize) -> Result<(), io::Error> {
-        writeln!(self.dest, "{:>indent$}<div class=\"image\">", " ")?;
-        writeln!(self.dest, "{:>indent$}  <img src=\"{}\">", " ", *url)?;
-        writeln!(self.dest, "{:>indent$}  <p class=\"caption\">{title}</p>", " ")?;
-        writeln!(self.dest, "{:>indent$}</div>", " ")
+        let indent = " ".repeat(indent);
+        writeln!(self.dest, "{indent}<div class=\"image\">")?;
+        writeln!(self.dest, "{indent}  <img src=\"{url}\">")?;
+        writeln!(self.dest, "{indent}  <p class=\"caption\">{title}</p>")?;
+        writeln!(self.dest, "{indent}</div>")
     }
 
     fn gen_link_card(&mut self, title: &String, image: &Option<String>, url: &String, description: &Option<String>, site_name: &Option<String>, indent: usize) -> Result<(), io::Error> {
-        writeln!(self.dest, "{:>indent$}<div class=\"linkcard\"><a class=\"linkcard-link\" href=\"{}\">", "", url)?;
-        writeln!(self.dest, "{:>indent$}  <div class=\"linkcard-text\">", "")?;
-        writeln!(self.dest, "{:>indent$}    <h3 class=\"linkcard-title\">{}</h3>", "", title)?;
+        let indent = " ".repeat(indent);
+
+        writeln!(self.dest, "{indent}<div class=\"linkcard\"><a class=\"linkcard-link\" href=\"{url}\">")?;
+        writeln!(self.dest, "{indent}  <div class=\"linkcard-text\">")?;
+        writeln!(self.dest, "{indent}    <h3 class=\"linkcard-title\">{title}</h3>")?;
         if let Some(desc) = description {
-            writeln!(self.dest, "{:>indent$}    <p class=\"linkcard-description\">{}</p>", "", desc)?;
+            writeln!(self.dest, "{indent}    <p class=\"linkcard-description\">{desc}</p>")?;
         }
-        writeln!(self.dest, "{:>indent$}    <img  class=\"linkcard-favicon\" src=\"http://www.google.com/s2/favicons?domain={}\"><span  class=\"linkcard-sitename\">{}</span>", "", url, site_name.clone().unwrap_or(url.clone()))?;
-        writeln!(self.dest, "{:>indent$}  </div>", "")?;
+        writeln!(self.dest, "{indent}    <img class=\"linkcard-favicon\" src=\"http://www.google.com/s2/favicons?domain={url}\"><span  class=\"linkcard-sitename\">{}</span>", site_name.clone().unwrap_or(url.clone()))?;
+        writeln!(self.dest, "{indent}  </div>")?;
         if let Some(img) = image {
-            writeln!(self.dest, "{:>indent$}  <img class=\"linkcard-image\" src=\"{}\">", "", img)?;
+            writeln!(self.dest, "{indent}  <img class=\"linkcard-image\" src=\"{img}\">")?;
         }
-        writeln!(self.dest, "{:>indent$}</a></div>", "")
+        writeln!(self.dest, "{indent}</a></div>")
     }
 
     fn gen_table(&mut self, head: &Vec<Vec<String>>, body: &Vec<Vec<String>>, indent: usize) -> Result<(), io::Error> {
-        writeln!(self.dest, "{:>indent$}<table>", " ")?;
+        let indent = " ".repeat(indent);
 
-        writeln!(self.dest, "{:>indent$}  <thead>", " ")?;
+        writeln!(self.dest, "{indent}<table>")?;
+
+        writeln!(self.dest, "{indent}  <thead>")?;
         for row in head {
-            writeln!(self.dest, "{:>indent$}    <tr>", " ")?;
+            writeln!(self.dest, "{indent}    <tr>")?;
             for data in row {
-                writeln!(self.dest, "{:>indent$}      <td>{}</td>", " ", *data)?;
+                writeln!(self.dest, "{indent}      <td>{data}</td>")?;
             }
-            writeln!(self.dest, "{:>indent$}    </tr>", " ")?;
+            writeln!(self.dest, "{indent}    </tr>")?;
         }
-        writeln!(self.dest, "{:>indent$}  </thead>", " ")?;
+        writeln!(self.dest, "{indent}  </thead>")?;
         
-        writeln!(self.dest, "{:>indent$}  <tbody>", " ")?;
+        writeln!(self.dest, "{indent}  <tbody>")?;
         for row in body {
-            writeln!(self.dest, "{:>indent$}    <tr>", " ")?;
+            writeln!(self.dest, "{indent}    <tr>")?;
             for data in row {
-                writeln!(self.dest, "{:>indent$}      <td>{}</td>", " ", *data)?;
+                writeln!(self.dest, "{indent}      <td>{data}</td>")?;
             }
-            writeln!(self.dest, "{:>indent$}    </tr>", " ")?;
+            writeln!(self.dest, "{indent}    </tr>")?;
         }
-        writeln!(self.dest, "{:>indent$}  </tbody>", " ")?;
+        writeln!(self.dest, "{indent}  </tbody>")?;
         
-        writeln!(self.dest, "{:>indent$}</table>", " ")
+        writeln!(self.dest, "{indent}</table>")
     }
 
     fn gen_math_block(&mut self, math: &String, indent: usize) -> Result<(), io::Error> {
-        let indent = format!("{:>indent$}", " ");
+        let indent = " ".repeat(indent);
         writeln!(self.dest, "{indent}<p>\\[{math}\\]</p>")
     }
 
     fn gen_code_block(&mut self, lang: &String, code: &String, indent: usize) -> Result<(), io::Error> {
-        let indent = format!("{:>indent$}", " ");
+        let indent = " ".repeat(indent);
         let lang = if lang == "" { "plaintext" } else { lang };
         writeln!(self.dest, "{indent}<pre><code class=\"language-{lang}\">{code}</code></pre>")
     }
 
     fn gen_paragraph(&mut self, text: &Inline, indent: usize) -> Result<(), io::Error> {
-        let indent = format!("{:>indent$}", " ");
+        let indent = " ".repeat(indent);
         writeln!(self.dest, "{indent}<p>{text}</p>")
     }
 }
