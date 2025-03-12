@@ -210,7 +210,7 @@ impl<'a> Parser<'a> {
     fn parse_math_block(&mut self) -> Block {
         let mut math = String::new();
         while let Some(c) = self.next_char_until("$$") {
-            math.push_str(&self.escape(c));
+            math.push(c);
         }
         MathBlock { math }
     }
@@ -222,7 +222,7 @@ impl<'a> Parser<'a> {
         }
         let mut code = String::new();
         while let Some(c) = self.next_char_until("```") {
-            code.push_str(&self.escape(c));
+            code.push(c);
         }
         CodeBlock { lang, code }
     }
@@ -250,7 +250,7 @@ impl<'a> Parser<'a> {
             loop {
                 match self.next_char() {
                     Some('|') => break,
-                    Some(c)   => data.push_str(&self.escape(c)),
+                    Some(c)   => data.push(c),
                     None      => break,
                 }
             }
@@ -330,7 +330,7 @@ impl<'a> Parser<'a> {
     fn parse_math(&mut self) -> Span {
         let mut math = String::new();
         while let Some(c) = self.next_char_until("$") {
-            math.push_str(&self.escape(c));
+            math.push(c);
         }
         Math { math }
     }
@@ -338,7 +338,7 @@ impl<'a> Parser<'a> {
     fn parse_code(&mut self) -> Span {
         let mut code = String::new();
         while let Some(c) = self.next_char_until("`") {
-            code.push_str(&self.escape(c));
+            code.push(c);
         }
         Code { code }
     }
@@ -350,7 +350,7 @@ impl<'a> Parser<'a> {
                 break Text { text }
             }
             if let Some(c) = self.next_char_until_newline() {
-                text.push_str(&self.escape(c));
+                text.push(c);
             } else {
                 break Text { text }
             }
@@ -432,14 +432,6 @@ impl<'a> Parser<'a> {
             true
         } else {
             false
-        }
-    }
-
-    fn escape(&self, c: char) -> String {
-        match c {
-            '<' => String::from("&lt;"),
-            '>' => String::from("&gt;"),
-            _ => c.to_string(),
         }
     }
 }

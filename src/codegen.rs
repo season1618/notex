@@ -129,7 +129,7 @@ impl<'a> CodeGen<'a> {
         for row in head {
             writeln!(self.dest, "{indent}    <tr>")?;
             for data in row {
-                writeln!(self.dest, "{indent}      <td>{data}</td>")?;
+                writeln!(self.dest, "{indent}      <td>{}</td>", HtmlText(data))?;
             }
             writeln!(self.dest, "{indent}    </tr>")?;
         }
@@ -139,7 +139,7 @@ impl<'a> CodeGen<'a> {
         for row in body {
             writeln!(self.dest, "{indent}    <tr>")?;
             for data in row {
-                writeln!(self.dest, "{indent}      <td>{data}</td>")?;
+                writeln!(self.dest, "{indent}      <td>{}</td>", HtmlText(data))?;
             }
             writeln!(self.dest, "{indent}    </tr>")?;
         }
@@ -150,13 +150,13 @@ impl<'a> CodeGen<'a> {
 
     fn gen_math_block(&mut self, math: &String, indent: usize) -> Result<(), io::Error> {
         let indent = " ".repeat(indent);
-        writeln!(self.dest, "{indent}<p>\\[{math}\\]</p>")
+        writeln!(self.dest, "{indent}<p>\\[{}\\]</p>", HtmlText(math))
     }
 
     fn gen_code_block(&mut self, lang: &String, code: &String, indent: usize) -> Result<(), io::Error> {
         let indent = " ".repeat(indent);
         let lang = if lang == "" { "plaintext" } else { lang };
-        writeln!(self.dest, "{indent}<pre><code class=\"language-{lang}\">{code}</code></pre>")
+        writeln!(self.dest, "{indent}<pre><code class=\"language-{lang}\">{}</code></pre>", HtmlText(code))
     }
 
     fn gen_paragraph(&mut self, text: &Inline, indent: usize) -> Result<(), io::Error> {

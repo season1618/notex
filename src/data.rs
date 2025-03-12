@@ -26,6 +26,8 @@ pub enum Span {
     Text { text: String },
 }
 
+pub struct HtmlText<'a>(pub &'a str);
+
 #[derive(Debug)]
 pub struct List {
     pub ordered: bool,
@@ -67,9 +69,22 @@ impl std::fmt::Display for Span {
             Link { text, url } => write!(f, "<a href=\"{url}\">{text}</a>"),
             Bold { text } => write!(f, "<strong>{text}</strong>"),
             Ital { text } => write!(f, "<em>{text}</em>"),
-            Math { math } => write!(f, "\\({math}\\)"),
-            Code { code } => write!(f, "<code>{code}</code>"),
-            Text { text } => write!(f, "{text}"),
+            Math { math } => write!(f, "\\({}\\)", HtmlText(math)),
+            Code { code } => write!(f, "<code>{}</code>", HtmlText(code)),
+            Text { text } => write!(f, "{}", HtmlText(text)),
         }
+    }
+}
+
+impl<'a> std::fmt::Display for HtmlText<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        for c in self.0.chars() {
+            match c {
+                '<' => write!(f, "&lt;")?,
+                '>' => write!(f, "&gt;")?,
+                c => write!(f, "{c}")?,
+            }
+        }
+        Ok(())
     }
 }
