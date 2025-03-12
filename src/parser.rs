@@ -190,13 +190,11 @@ impl<'a> Parser<'a> {
 
     fn parse_embed(&mut self) -> Block {
         let mut text = Vec::new();
-        let mut url = String::new();
         while !self.starts_with_next("](") {
             text.push(self.parse_link());
         }
-        while let Some(c) = self.next_char_until(")") {
-            url.push(c);
-        }
+
+        let url = self.text_until_trim(&[")"]).to_string();
 
         if url.ends_with(".png") || url.ends_with(".jpg") {
             let title = Inline(text);
@@ -208,22 +206,13 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_math_block(&mut self) -> Block {
-        let mut math = String::new();
-        while let Some(c) = self.next_char_until("$$") {
-            math.push(c);
-        }
+        let math = self.text_until_trim(&["$$"]).to_string();
         MathBlock { math }
     }
 
     fn parse_code_block(&mut self) -> Block {
-        let mut lang = String::new();
-        while let Some(c) = self.next_char_until_newline() {
-            lang.push(c);
-        }
-        let mut code = String::new();
-        while let Some(c) = self.next_char_until("```") {
-            code.push(c);
-        }
+        let lang = self.text_until_trim(&["\n", "\r\n"]).to_string();
+        let code = self.text_until_trim(&["```"]).to_string();
         CodeBlock { lang, code }
     }
 
@@ -328,19 +317,13 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_math(&mut self) -> Span {
-        let mut math = String::new();
-        while let Some(c) = self.next_char_until("$") {
-            math.push(c);
-        }
-        Math { math }
+        let math = self.text_until_trim(&["$"]);
+        Math { math: math.to_string() }
     }
 
     fn parse_code(&mut self) -> Span {
-        let mut code = String::new();
-        while let Some(c) = self.next_char_until("`") {
-            code.push(c);
-        }
-        Code { code }
+        let code = self.text_until_trim(&["`"]);
+        Code { code: code.to_string() }
     }
 
     fn parse_text(&mut self) -> Span {
@@ -387,37 +370,6 @@ impl<'a> Parser<'a> {
         } else {
             None
         }
-    }
-
-    fn next_char_until(&mut self, until: &str) -> Option<char> {
-        if self.chs.starts_with(until) {
-            let len = until.chars().count();
-            self.chs = &self.chs[len..];
-            return None;
-        }
-        if let Some(c) = self.chs.chars().nth(0) {
-            let i = if let Some((i, _)) = self.chs.char_indices().nth(1) { i } else { self.chs.len() };
-            self.chs = &self.chs[i..];
-            return Some(c);
-        }
-        None
-    }
-
-    fn next_char_until_newline(&mut self) -> Option<char> {
-        if self.chs.starts_with("\n") {
-            self.chs = &self.chs[1..];
-            return None;
-        }
-        if self.chs.starts_with("\r\n") {
-            self.chs = &self.chs[2..];
-            return None;
-        }
-        if let Some(c) = self.chs.chars().nth(0) {
-            let i = if let Some((i, _)) = self.chs.char_indices().nth(1) { i } else { self.chs.len() };
-            self.chs = &self.chs[i..];
-            return Some(c);
-        }
-        None
     }
 
     fn starts_with_next(&mut self, prefix: &str) -> bool {
