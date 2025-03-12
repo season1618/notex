@@ -359,17 +359,17 @@ impl<'a> Parser<'a> {
 
     fn text_until(&mut self, terms: &[&str]) -> &str {
         let mut chs = self.chs.chars();
-        let mut idx = 0;
         while !chs.as_str().is_empty() {
             if let Some(&term) = terms.iter().find(|&term| chs.as_str().starts_with(term)) {
                 chs = chs.as_str().trim_start_matches(term).chars();
                 break;
             }
-            idx += 1;
             chs.next();
         }
+        let rest = chs.as_str();
+        let idx = self.chs.len() - rest.len();
         let text = &self.chs[..idx];
-        self.chs = chs.as_str();
+        self.chs = rest;
         text
     }
 
