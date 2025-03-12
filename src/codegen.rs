@@ -141,16 +141,18 @@ impl<'a> CodeGen<'a> {
     }
 
     fn gen_math_block(&mut self, math: &String, indent: usize) -> Result<(), io::Error> {
-        writeln!(self.dest, "{:>indent$}<p>\\[{}\\]</p>", " ", math)
+        let indent = format!("{:>indent$}", " ");
+        writeln!(self.dest, "{indent}<p>\\[{math}\\]</p>")
     }
 
     fn gen_code_block(&mut self, lang: &String, code: &String, indent: usize) -> Result<(), io::Error> {
-        write!(self.dest, "{:>indent$}<pre><code class=\"language-{}\">", " ", if lang == "" { "plaintext" } else { lang })?;
-        write!(self.dest, "{}", code)?;
-        writeln!(self.dest, "</code></pre>")
+        let indent = format!("{:>indent$}", " ");
+        let lang = if lang == "" { "plaintext" } else { lang };
+        writeln!(self.dest, "{indent}<pre><code class=\"language-{lang}\">{code}</code></pre>")
     }
 
     fn gen_paragraph(&mut self, text: &Inline, indent: usize) -> Result<(), io::Error> {
-        writeln!(self.dest, "{:>indent$}<p>{text}</p>", " ")
+        let indent = format!("{:>indent$}", " ");
+        writeln!(self.dest, "{indent}<p>{text}</p>")
     }
 }
