@@ -277,25 +277,18 @@ impl<'a> Parser<'a> {
     fn parse_link(&mut self) -> Span {
         if self.starts_with_next("[") { // link
             let mut text = Vec::new();
-            let mut url = String::new();
 
             while !self.starts_with_next("](") {
                 text.push(self.parse_emph());
             }
 
-            while !self.starts_with_next(")") {
-                if let Some(c) = self.next_char_until_newline() {
-                    url.push(c);
-                } else {
-                    break;
-                }
-            }
+            let url = self.text_until(&[")", "\n", "\r\n"]);
 
             if text.is_empty() {
-                text = vec![ Text { text: get_title(&url) } ];
+                text = vec![ Text { text: get_title(url) } ];
             }
 
-            Link { text: Inline(text), url }
+            Link { text: Inline(text), url: url.to_string() }
         } else {
             self.parse_emph()
         }
@@ -362,6 +355,22 @@ impl<'a> Parser<'a> {
                 break Text { text }
             }
         }
+    }
+
+    fn text_until(&mut self, terms: &[&str]) -> &str {
+        let mut chs = self.chs.chars();
+        let mut idx = 0;
+        while !chs.as_str().is_empty() {
+            if let Some(&term) = terms.iter().find(|&term| chs.as_str().starts_with(term)) {
+                chs = chs.as_str().trim_start_matches(term).chars();
+                break;
+            }
+            idx += 1;
+            chs.next();
+        }
+        let text = &self.chs[..idx];
+        self.chs = chs.as_str();
+        text
     }
 
     fn next_char(&mut self) -> Option<char> {
@@ -436,7 +445,7 @@ impl<'a> Parser<'a> {
 }
 
 #[tokio::main]
-async fn get_title(url: &String) -> String {
+async fn get_title(url: &str) -> String {
     let client = reqwest::Client::new();
     let Ok(res) = client.get(url).header(header::ACCEPT, header::HeaderValue::from_str("text/html").unwrap()).send().await else {
         return String::new();
@@ -452,7 +461,7 @@ async fn get_title(url: &String) -> String {
 }
 
 #[tokio::main]
-async fn get_ogp_info(url: &String) -> (String, Option<String>, Option<String>, Option<String>) {
+async fn get_ogp_info(url: &str) -> (String, Option<String>, Option<String>, Option<String>) {
     let mut title = String::new();
     let mut image = None;
     let mut description = None;
