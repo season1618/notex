@@ -64,13 +64,13 @@ impl<'a> CodeGen<'a> {
         Ok(())
     }
 
-    fn gen_header(&mut self, header: &Vec<Span>, level: &u32, id: &String, indent: usize) -> Result<(), io::Error> {
+    fn gen_header(&mut self, header: &Inline, level: &u32, id: &String, indent: usize) -> Result<(), io::Error> {
         write!(self.dest, "{:>indent$}<h{} id=\"{}\">", " ", *level, *id)?;
         self.gen_spans(header)?;
         writeln!(self.dest, "</h{}>", *level)
     }
 
-    fn gen_blockquote(&mut self, lines: &Vec<Vec<Span>>, indent: usize) -> Result<(), io::Error> {
+    fn gen_blockquote(&mut self, lines: &Vec<Inline>, indent: usize) -> Result<(), io::Error> {
         writeln!(self.dest, "{:>indent$}<blockquote>", " ")?;
         for spans in lines {
             write!(self.dest, "{:>indent$}  <p>", " ")?;
@@ -99,7 +99,7 @@ impl<'a> CodeGen<'a> {
         writeln!(self.dest, "{:>indent$}</{}>", " ", if list.ordered { "ol" } else { "ul" })
     }
 
-    fn gen_image(&mut self, title: &Vec<Span>, url: &String, indent: usize) -> Result<(), io::Error> {
+    fn gen_image(&mut self, title: &Inline, url: &String, indent: usize) -> Result<(), io::Error> {
         writeln!(self.dest, "{:>indent$}<div class=\"image\">", " ")?;
         writeln!(self.dest, "{:>indent$}  <img src=\"{}\">", " ", *url)?;
         write!(self.dest, "{:>indent$}  <p class=\"caption\">", " ")?;
@@ -159,14 +159,14 @@ impl<'a> CodeGen<'a> {
         writeln!(self.dest, "</code></pre>")
     }
 
-    fn gen_paragraph(&mut self, spans: &Vec<Span>, indent: usize) -> Result<(), io::Error> {
+    fn gen_paragraph(&mut self, spans: &Inline, indent: usize) -> Result<(), io::Error> {
         write!(self.dest, "{:>indent$}<p>", " ")?;
         self.gen_spans(spans)?;
         writeln!(self.dest, "</p>")
     }
 
-    fn gen_spans(&mut self, spans: &Vec<Span>) -> Result<(), io::Error> {
-        for span in spans {
+    fn gen_spans(&mut self, spans: &Inline) -> Result<(), io::Error> {
+        for span in &spans.0 {
             self.gen_span(span)?;
         }
         Ok(())

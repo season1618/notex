@@ -36,7 +36,7 @@ impl<'a> Parser<'a> {
         while !self.chs.is_empty() {
             let block = self.parse_block();
             match block {
-                Paragraph { spans } if spans.is_empty() => {},
+                Paragraph { spans } if spans.0.is_empty() => {},
                 _ => { self.content.push(block); },
             }
         }
@@ -101,11 +101,11 @@ impl<'a> Parser<'a> {
         let mut header_toc = Vec::new();
         let mut header_id = String::new();
 
-        let header = self.parse_spans();
-        for span in &header {
+        let header = Inline(self.parse_spans());
+        for span in &header.0 {
             match span {
                 Link { text, .. } => {
-                    for span in text {
+                    for span in &text.0 {
                         header_toc.push(span.clone());
                     }
                 },
@@ -136,7 +136,7 @@ impl<'a> Parser<'a> {
                 cur = &mut cur.items.last_mut().unwrap().list;
             }
             cur.items.push(ListItem {
-                spans: vec![ Link { text: header_toc, url: format!("#{}", &header_id) } ],
+                spans: Inline(vec![ Link { text: Inline(header_toc), url: format!("#{}", &header_id) } ]),
                 list: List { ordered: true, items: Vec::new() },
             });
         }
@@ -146,7 +146,7 @@ impl<'a> Parser<'a> {
     fn parse_blockquote(&mut self) -> Block {
         let mut lines = Vec::new();
         while self.starts_with_next("> ") {
-            lines.push(self.parse_spans());
+            lines.push(Inline(self.parse_spans()));
         }
         Blockquote { lines }
     }
@@ -168,7 +168,7 @@ impl<'a> Parser<'a> {
                 if self.starts_with_next("- ") {
                     ordered = false;
                     items.push(ListItem {
-                        spans: self.parse_spans(),
+                        spans: Inline(self.parse_spans()),
                         list: self.parse_list(indent + 1),
                     });
                     continue;
@@ -177,7 +177,7 @@ impl<'a> Parser<'a> {
                 if self.starts_with_next("+ ") {
                     ordered = true;
                     items.push(ListItem {
-                        spans: self.parse_spans(),
+                        spans: Inline(self.parse_spans()),
                         list: self.parse_list(indent + 1),
                     });
                     continue;
@@ -199,7 +199,7 @@ impl<'a> Parser<'a> {
         }
 
         if url.ends_with(".png") || url.ends_with(".jpg") {
-            let title = text;
+            let title = Inline(text);
             Image { title, url }
         } else {
             let (title, image, description, site_name) = get_ogp_info(&url);
@@ -263,7 +263,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_paragraph(&mut self) -> Block {
-        Paragraph { spans: self.parse_spans() }
+        Paragraph { spans: Inline(self.parse_spans()) }
     }
 
     fn parse_spans(&mut self) -> Vec<Span> {
@@ -295,7 +295,7 @@ impl<'a> Parser<'a> {
                 text = vec![ Text { text: get_title(&url) } ];
             }
 
-            Link { text, url }
+            Link { text: Inline(text), url }
         } else {
             self.parse_emph()
         }
@@ -307,13 +307,13 @@ impl<'a> Parser<'a> {
             while !self.starts_with_next("**") {
                 text.push(self.parse_emph());
             }
-            Bold { text }
+            Bold { text: Inline(text) }
         } else if self.starts_with_next("__") {
             let mut text = Vec::new();
             while !self.starts_with_next("__") {
                 text.push(self.parse_emph());
             }
-            Ital { text }
+            Ital { text: Inline(text) }
         } else {
             self.parse_primary()
         }
