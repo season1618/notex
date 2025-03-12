@@ -101,7 +101,7 @@ impl<'a> Parser<'a> {
         let mut header_toc = Vec::new();
         let mut header_id = String::new();
 
-        let header = Inline(self.parse_spans());
+        let header = self.parse_inline();
         for span in &header.0 {
             match span {
                 Link { text, .. } => {
@@ -146,7 +146,7 @@ impl<'a> Parser<'a> {
     fn parse_blockquote(&mut self) -> Block {
         let mut lines = Vec::new();
         while self.starts_with_next("> ") {
-            lines.push(Inline(self.parse_spans()));
+            lines.push(self.parse_inline());
         }
         Blockquote { lines }
     }
@@ -168,7 +168,7 @@ impl<'a> Parser<'a> {
                 if self.starts_with_next("- ") {
                     ordered = false;
                     items.push(ListItem {
-                        item: Inline(self.parse_spans()),
+                        item: self.parse_inline(),
                         list: self.parse_list(indent + 1),
                     });
                     continue;
@@ -177,7 +177,7 @@ impl<'a> Parser<'a> {
                 if self.starts_with_next("+ ") {
                     ordered = true;
                     items.push(ListItem {
-                        item: Inline(self.parse_spans()),
+                        item: self.parse_inline(),
                         list: self.parse_list(indent + 1),
                     });
                     continue;
@@ -263,15 +263,15 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_paragraph(&mut self) -> Block {
-        Paragraph { text: Inline(self.parse_spans()) }
+        Paragraph { text: self.parse_inline() }
     }
 
-    fn parse_spans(&mut self) -> Vec<Span> {
+    fn parse_inline(&mut self) -> Inline {
         let mut spans = Vec::new();
         while !self.chs.is_empty() && !self.starts_with_newline_next() {
             spans.push(self.parse_link());
         }
-        spans
+        Inline(spans)
     }
 
     fn parse_link(&mut self) -> Span {
