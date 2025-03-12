@@ -282,7 +282,7 @@ impl<'a> Parser<'a> {
                 text.push(self.parse_emph());
             }
 
-            let url = self.text_until(&[")", "\n", "\r\n"]);
+            let url = self.text_until_trim(&[")", "\n", "\r\n"]);
 
             if text.is_empty() {
                 text = vec![ Text { text: get_title(url) } ];
@@ -344,15 +344,14 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_text(&mut self) -> Span {
-        let text = self.text_until2(&["**", "__", "[", "]", "$", "`", "\n", "\r\n"]);
+        let text = self.text_until(&["**", "__", "[", "]", "$", "`", "\n", "\r\n"]);
         Text { text: text.to_string() }
     }
 
     fn text_until(&mut self, terms: &[&str]) -> &str {
         let mut chs = self.chs.chars();
         while !chs.as_str().is_empty() {
-            if let Some(&term) = terms.iter().find(|&term| chs.as_str().starts_with(term)) {
-                chs = chs.as_str().trim_start_matches(term).chars();
+            if terms.iter().any(|&term| chs.as_str().starts_with(term)) {
                 break;
             }
             chs.next();
@@ -364,10 +363,11 @@ impl<'a> Parser<'a> {
         text
     }
 
-    fn text_until2(&mut self, terms: &[&str]) -> &str {
+    fn text_until_trim(&mut self, terms: &[&str]) -> &str {
         let mut chs = self.chs.chars();
         while !chs.as_str().is_empty() {
-            if terms.iter().any(|&term| chs.as_str().starts_with(term)) {
+            if let Some(&term) = terms.iter().find(|&term| chs.as_str().starts_with(term)) {
+                chs = chs.as_str().trim_start_matches(term).chars();
                 break;
             }
             chs.next();
