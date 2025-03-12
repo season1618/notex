@@ -5,7 +5,6 @@ use chrono::{Local, Datelike, Timelike};
 use crate::data::*;
 
 use Block::*;
-use Span::*;
 use Elem::*;
 
 pub fn gen_html(dest: &mut File, title: &String, toc: &List, content: &Vec<Block>, template: &Vec<Elem>) -> Result<(), io::Error> {
@@ -65,17 +64,13 @@ impl<'a> CodeGen<'a> {
     }
 
     fn gen_header(&mut self, header: &Inline, level: &u32, id: &String, indent: usize) -> Result<(), io::Error> {
-        write!(self.dest, "{:>indent$}<h{} id=\"{}\">", " ", *level, *id)?;
-        self.gen_spans(header)?;
-        writeln!(self.dest, "</h{}>", *level)
+        writeln!(self.dest, "{:>indent$}<h{level} id=\"{id}\">{header}</h{level}>", " ")
     }
 
     fn gen_blockquote(&mut self, lines: &Vec<Inline>, indent: usize) -> Result<(), io::Error> {
         writeln!(self.dest, "{:>indent$}<blockquote>", " ")?;
-        for spans in lines {
-            write!(self.dest, "{:>indent$}  <p>", " ")?;
-            self.gen_spans(spans)?;
-            writeln!(self.dest, "</p>")?;
+        for line in lines {
+            writeln!(self.dest, "{:>indent$}  <p>{line}</p>", " ")?;
         }
         writeln!(self.dest, "{:>indent$}</blockquote>", " ")
     }
@@ -89,9 +84,7 @@ impl<'a> CodeGen<'a> {
         for item in &list.items {
             writeln!(self.dest, "{:>indent$}  <li>", " ")?;
             
-            write!(self.dest, "{:>indent$}    ", " ")?;
-            self.gen_spans(&item.spans)?;
-            writeln!(self.dest)?;
+            writeln!(self.dest, "{:>indent$}    {}", " ", item.spans)?;
             self.gen_list(&item.list, indent + 4)?;
             
             writeln!(self.dest, "{:>indent$}  </li>", " ")?;
@@ -102,9 +95,7 @@ impl<'a> CodeGen<'a> {
     fn gen_image(&mut self, title: &Inline, url: &String, indent: usize) -> Result<(), io::Error> {
         writeln!(self.dest, "{:>indent$}<div class=\"image\">", " ")?;
         writeln!(self.dest, "{:>indent$}  <img src=\"{}\">", " ", *url)?;
-        write!(self.dest, "{:>indent$}  <p class=\"caption\">", " ")?;
-        self.gen_spans(title)?;
-        writeln!(self.dest, "</p>")?;
+        writeln!(self.dest, "{:>indent$}  <p class=\"caption\">{title}</p>", " ")?;
         writeln!(self.dest, "{:>indent$}</div>", " ")
     }
 
@@ -159,39 +150,7 @@ impl<'a> CodeGen<'a> {
         writeln!(self.dest, "</code></pre>")
     }
 
-    fn gen_paragraph(&mut self, spans: &Inline, indent: usize) -> Result<(), io::Error> {
-        write!(self.dest, "{:>indent$}<p>", " ")?;
-        self.gen_spans(spans)?;
-        writeln!(self.dest, "</p>")
-    }
-
-    fn gen_spans(&mut self, spans: &Inline) -> Result<(), io::Error> {
-        for span in &spans.0 {
-            self.gen_span(span)?;
-        }
-        Ok(())
-    }
-
-    fn gen_span(&mut self, span: &Span) -> Result<(), io::Error> {
-        match span {
-            Link { text, url } => {
-                write!(self.dest, "<a href=\"{}\">", *url)?;
-                self.gen_spans(text)?;
-                write!(self.dest, "</a>")
-            },
-            Bold { text } => {
-                write!(self.dest, "<strong>")?;
-                self.gen_spans(text)?;
-                write!(self.dest, "</strong>")
-            },
-            Ital { text } => {
-                write!(self.dest, "<em>")?;
-                self.gen_spans(text)?;
-                write!(self.dest, "</em>")
-            },
-            Math { math } => write!(self.dest, "\\({}\\)", *math),
-            Code { code } => write!(self.dest, "<code>{}</code>", *code),
-            Text { text } => write!(self.dest, "{}", text),
-        }
+    fn gen_paragraph(&mut self, text: &Inline, indent: usize) -> Result<(), io::Error> {
+        writeln!(self.dest, "{:>indent$}<p>{text}</p>", " ")
     }
 }

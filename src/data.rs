@@ -1,3 +1,5 @@
+use Span::*;
+
 #[derive(Debug)]
 pub enum Block {
     Header { header: Inline, level: u32, id: String },
@@ -48,4 +50,26 @@ pub enum Elem {
     Toc(usize),
     Content(usize),
     Str(String),
+}
+
+impl std::fmt::Display for Inline {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        for item in &self.0 {
+            item.fmt(f)?;
+        }
+        Ok(())
+    }
+}
+
+impl std::fmt::Display for Span {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Link { text, url } => write!(f, "<a href=\"{url}\">{text}</a>"),
+            Bold { text } => write!(f, "<strong>{text}</strong>"),
+            Ital { text } => write!(f, "<em>{text}</em>"),
+            Math { math } => write!(f, "\\({math}\\)"),
+            Code { code } => write!(f, "<code>{code}</code>"),
+            Text { text } => write!(f, "{text}"),
+        }
+    }
 }
