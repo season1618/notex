@@ -104,7 +104,7 @@ impl<'a> Parser<'a> {
         let mut header_id = String::new();
 
         while !self.starts_with_newline_next() {
-            header_cont.push(self.parse_primary());
+            header_cont.push(self.parse_link());
         }
         for prim in &header_cont {
             match prim {
@@ -196,7 +196,7 @@ impl<'a> Parser<'a> {
         let mut text = Vec::new();
         let mut url = String::new();
         while !self.starts_with_next("](") {
-            text.push(self.parse_primary());
+            text.push(self.parse_link());
         }
         while let Some(c) = self.next_char_until(")") {
             url.push(c);
@@ -286,7 +286,7 @@ impl<'a> Parser<'a> {
             }
 
             // primary
-            spans.push(PrimElem(self.parse_primary()));
+            spans.push(PrimElem(self.parse_link()));
         }
         spans
     }
@@ -299,7 +299,7 @@ impl<'a> Parser<'a> {
             }
             Bold { text }
         } else {
-            PrimElem(self.parse_primary())
+            PrimElem(self.parse_link())
         }
     }
 
@@ -311,43 +311,38 @@ impl<'a> Parser<'a> {
             }
             Ital { text }
         } else {
-            PrimElem(self.parse_primary())
-        }
-    }
-
-    fn parse_primary(&mut self) -> Prim {
-        // link
-        if self.starts_with_next("[") {
-            self.parse_link()
-        } else {
-            self.parse_subprimary()
+            PrimElem(self.parse_link())
         }
     }
 
     fn parse_link(&mut self) -> Prim {
-        let mut text = Vec::new();
-        let mut url = String::new();
+        if self.starts_with_next("[") { // link
+            let mut text = Vec::new();
+            let mut url = String::new();
 
-        while !self.starts_with_next("](") {
-            text.push(self.parse_subprimary());
-        }
-
-        while !self.starts_with_next(")") {
-            if let Some(c) = self.next_char_until_newline() {
-                url.push(c);
-            } else {
-                break;
+            while !self.starts_with_next("](") {
+                text.push(self.parse_primary());
             }
-        }
 
-        if text.is_empty() {
-            text = vec![ Text { text: get_title(&url) } ];
-        }
+            while !self.starts_with_next(")") {
+                if let Some(c) = self.next_char_until_newline() {
+                    url.push(c);
+                } else {
+                    break;
+                }
+            }
 
-        Link { text, url }
+            if text.is_empty() {
+                text = vec![ Text { text: get_title(&url) } ];
+            }
+
+            Link { text, url }
+        } else {
+            self.parse_primary()
+        }
     }
 
-    fn parse_subprimary(&mut self) -> Prim {
+    fn parse_primary(&mut self) -> Prim {
         // math
         if self.starts_with_next("$") {
             return self.parse_math();
