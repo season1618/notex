@@ -10,7 +10,7 @@ pub enum Block {
     MathBlock { math: String },
     CodeBlock { lang: String, code: String },
     Table { head: Vec<Vec<String>>, body: Vec<Vec<String>> },
-    Paragraph { spans: Inline },
+    Paragraph { text: Inline },
 }
 
 #[derive(Clone, Debug)]
@@ -34,7 +34,7 @@ pub struct List {
 
 #[derive(Debug)]
 pub struct ListItem {
-    pub spans: Inline,
+    pub item: Inline,
     pub list: List,
 }
 

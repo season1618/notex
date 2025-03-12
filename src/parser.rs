@@ -36,7 +36,7 @@ impl<'a> Parser<'a> {
         while !self.chs.is_empty() {
             let block = self.parse_block();
             match block {
-                Paragraph { spans } if spans.0.is_empty() => {},
+                Paragraph { text } if text.0.is_empty() => {},
                 _ => { self.content.push(block); },
             }
         }
@@ -136,7 +136,7 @@ impl<'a> Parser<'a> {
                 cur = &mut cur.items.last_mut().unwrap().list;
             }
             cur.items.push(ListItem {
-                spans: Inline(vec![ Link { text: Inline(header_toc), url: format!("#{}", &header_id) } ]),
+                item: Inline(vec![ Link { text: Inline(header_toc), url: format!("#{}", &header_id) } ]),
                 list: List { ordered: true, items: Vec::new() },
             });
         }
@@ -168,7 +168,7 @@ impl<'a> Parser<'a> {
                 if self.starts_with_next("- ") {
                     ordered = false;
                     items.push(ListItem {
-                        spans: Inline(self.parse_spans()),
+                        item: Inline(self.parse_spans()),
                         list: self.parse_list(indent + 1),
                     });
                     continue;
@@ -177,7 +177,7 @@ impl<'a> Parser<'a> {
                 if self.starts_with_next("+ ") {
                     ordered = true;
                     items.push(ListItem {
-                        spans: Inline(self.parse_spans()),
+                        item: Inline(self.parse_spans()),
                         list: self.parse_list(indent + 1),
                     });
                     continue;
@@ -263,7 +263,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_paragraph(&mut self) -> Block {
-        Paragraph { spans: Inline(self.parse_spans()) }
+        Paragraph { text: Inline(self.parse_spans()) }
     }
 
     fn parse_spans(&mut self) -> Vec<Span> {

@@ -57,7 +57,7 @@ impl<'a> CodeGen<'a> {
                 LinkCard { title, image, url, description, site_name } => self.gen_link_card(title, image, url, description, site_name, indent)?,
                 MathBlock { math } => self.gen_math_block(math, indent)?,
                 CodeBlock { lang, code } => self.gen_code_block(lang, code, indent)?,
-                Paragraph { spans } => self.gen_paragraph(spans, indent)?,
+                Paragraph { text } => self.gen_paragraph(text, indent)?,
             }
         }
         Ok(())
@@ -84,11 +84,11 @@ impl<'a> CodeGen<'a> {
 
         let indent = " ".repeat(depth);
         writeln!(self.dest, "{indent}<{}>", if list.ordered { "ol" } else { "ul" })?;
-        for item in &list.items {
+        for ListItem { item, list } in &list.items {
             writeln!(self.dest, "{indent}  <li>")?;
             
-            writeln!(self.dest, "{indent}    {}", item.spans)?;
-            self.gen_list(&item.list, depth + 4)?;
+            writeln!(self.dest, "{indent}    {item}")?;
+            self.gen_list(list, depth + 4)?;
             
             writeln!(self.dest, "{indent}  </li>")?;
         }
