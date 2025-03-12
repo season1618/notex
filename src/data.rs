@@ -1,9 +1,9 @@
 #[derive(Debug)]
 pub enum Block {
-    Header { prims: Vec<Prim>, level: u32, id: String },
+    Header { prims: Vec<Span>, level: u32, id: String },
     Blockquote { lines: Vec<Vec<Span>> },
     ListElement(List),
-    Image { title: Vec<Prim>, url: String },
+    Image { title: Vec<Span>, url: String },
     LinkCard { title: String, image: Option<String>, url: String, description: Option<String>, site_name: Option<String> },
     MathBlock { math: String },
     CodeBlock { lang: String, code: String },
@@ -13,14 +13,9 @@ pub enum Block {
 
 #[derive(Clone, Debug)]
 pub enum Span {
+    Link { text: Vec<Span>, url: String },
     Bold { text: Vec<Span> },
     Ital { text: Vec<Span> },
-    PrimElem(Prim),
-}
-
-#[derive(Clone, Debug)]
-pub enum Prim {
-    Link { text: Vec<Prim>, url: String },
     Math { math: String },
     Code { code: String },
     Text { text: String },

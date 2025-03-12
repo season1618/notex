@@ -6,7 +6,6 @@ use crate::data::*;
 
 use Block::*;
 use Span::*;
-use Prim::*;
 use Elem::*;
 
 pub fn gen_html(dest: &mut File, title: &String, toc: &List, content: &Vec<Block>, template: &Vec<Elem>) -> Result<(), io::Error> {
@@ -65,9 +64,9 @@ impl<'a> CodeGen<'a> {
         Ok(())
     }
 
-    fn gen_header(&mut self, prims: &Vec<Prim>, level: &u32, id: &String, indent: usize) -> Result<(), io::Error> {
+    fn gen_header(&mut self, prims: &Vec<Span>, level: &u32, id: &String, indent: usize) -> Result<(), io::Error> {
         write!(self.dest, "{:>indent$}<h{} id=\"{}\">", " ", *level, *id)?;
-        self.gen_prims(prims)?;
+        self.gen_spans(prims)?;
         writeln!(self.dest, "</h{}>", *level)
     }
 
@@ -100,11 +99,11 @@ impl<'a> CodeGen<'a> {
         writeln!(self.dest, "{:>indent$}</{}>", " ", if list.ordered { "ol" } else { "ul" })
     }
 
-    fn gen_image(&mut self, title: &Vec<Prim>, url: &String, indent: usize) -> Result<(), io::Error> {
+    fn gen_image(&mut self, title: &Vec<Span>, url: &String, indent: usize) -> Result<(), io::Error> {
         writeln!(self.dest, "{:>indent$}<div class=\"image\">", " ")?;
         writeln!(self.dest, "{:>indent$}  <img src=\"{}\">", " ", *url)?;
         write!(self.dest, "{:>indent$}  <p class=\"caption\">", " ")?;
-        self.gen_prims(title)?;
+        self.gen_spans(title)?;
         writeln!(self.dest, "</p>")?;
         writeln!(self.dest, "{:>indent$}</div>", " ")
     }
@@ -168,40 +167,27 @@ impl<'a> CodeGen<'a> {
 
     fn gen_spans(&mut self, spans: &Vec<Span>) -> Result<(), io::Error> {
         for span in spans {
-            match span {
-                Bold { text } => self.gen_bold(text)?,
-                Ital { text } => self.gen_ital(text)?,
-                PrimElem(prim) => self.gen_primary(prim)?,
-            }
+            self.gen_span(span)?;
         }
         Ok(())
     }
 
-    fn gen_bold(&mut self, text: &Vec<Span>) -> Result<(), io::Error> {
-        write!(self.dest, "<strong>")?;
-        self.gen_spans(text)?;
-        write!(self.dest, "</strong>")
-    }
-
-    fn gen_ital(&mut self, text: &Vec<Span>) -> Result<(), io::Error> {
-        write!(self.dest, "<em>")?;
-        self.gen_spans(text)?;
-        write!(self.dest, "</em>")
-    }
-
-    fn gen_prims(&mut self, prims: &Vec<Prim>) -> Result<(), io::Error> {
-        for prim in prims {
-            self.gen_primary(prim)?;
-        }
-        Ok(())
-    }
-
-    fn gen_primary(&mut self, prim: &Prim) -> Result<(), io::Error> {
+    fn gen_span(&mut self, prim: &Span) -> Result<(), io::Error> {
         match prim {
             Link { text, url } => {
                 write!(self.dest, "<a href=\"{}\">", *url)?;
-                self.gen_prims(text)?;
+                self.gen_spans(text)?;
                 write!(self.dest, "</a>")
+            },
+            Bold { text } => {
+                write!(self.dest, "<strong>")?;
+                self.gen_spans(text)?;
+                write!(self.dest, "</strong>")
+            },
+            Ital { text } => {
+                write!(self.dest, "<em>")?;
+                self.gen_spans(text)?;
+                write!(self.dest, "</em>")
             },
             Math { math } => write!(self.dest, "\\({}\\)", *math),
             Code { code } => write!(self.dest, "<code>{}</code>", *code),

@@ -6,7 +6,6 @@ use crate::data::*;
 use crate::multiset::MultiSet;
 use Block::*;
 use Span::*;
-use Prim::*;
 
 pub fn parse_markdown(doc: &str) -> (String, List, Vec<Block>) {
     let mut parser = Parser::new(doc);
@@ -99,21 +98,18 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_header(&mut self, level: u32) -> Block {
-        let mut header_cont = Vec::new();
         let mut header_toc = Vec::new();
         let mut header_id = String::new();
 
-        while !self.starts_with_newline_next() {
-            header_cont.push(self.parse_link());
-        }
-        for prim in &header_cont {
-            match prim {
+        let header_cont = self.parse_spans();
+        for span in &header_cont {
+            match span {
                 Link { text, .. } => {
                     for prim in text {
                         header_toc.push(prim.clone());
                     }
                 },
-                _ => header_toc.push(prim.clone()),
+                _ => header_toc.push(span.clone()),
             }
         }
 
@@ -140,7 +136,7 @@ impl<'a> Parser<'a> {
                 cur = &mut cur.items.last_mut().unwrap().list;
             }
             cur.items.push(ListItem {
-                spans: vec![ PrimElem(Link { text: header_toc, url: format!("#{}", &header_id) }) ],
+                spans: vec![ Link { text: header_toc, url: format!("#{}", &header_id) } ],
                 list: List { ordered: true, items: Vec::new() },
             });
         }
@@ -198,6 +194,7 @@ impl<'a> Parser<'a> {
         while !self.starts_with_next("](") {
             text.push(self.parse_link());
         }
+        // text = self.parse_spans();
         while let Some(c) = self.next_char_until(")") {
             url.push(c);
         }
@@ -273,55 +270,18 @@ impl<'a> Parser<'a> {
     fn parse_spans(&mut self) -> Vec<Span> {
         let mut spans = Vec::new();
         while !self.chs.is_empty() && !self.starts_with_newline_next() {
-            // bold
-            if self.chs.starts_with("**") {
-                spans.push(self.parse_bold());
-                continue;
-            }
-
-            // italic
-            if self.chs.starts_with("__") {
-                spans.push(self.parse_italic());
-                continue;
-            }
-
-            // primary
-            spans.push(PrimElem(self.parse_link()));
+            spans.push(self.parse_link());
         }
         spans
     }
 
-    fn parse_bold(&mut self) -> Span {
-        if self.starts_with_next("**") {
-            let mut text = Vec::new();
-            while !self.starts_with_next("**") {
-                text.push(self.parse_italic());
-            }
-            Bold { text }
-        } else {
-            PrimElem(self.parse_link())
-        }
-    }
-
-    fn parse_italic(&mut self) -> Span {
-        if self.starts_with_next("__") {
-            let mut text = Vec::new();
-            while !self.starts_with_next("__") {
-                text.push(self.parse_bold());
-            }
-            Ital { text }
-        } else {
-            PrimElem(self.parse_link())
-        }
-    }
-
-    fn parse_link(&mut self) -> Prim {
+    fn parse_link(&mut self) -> Span {
         if self.starts_with_next("[") { // link
             let mut text = Vec::new();
             let mut url = String::new();
 
             while !self.starts_with_next("](") {
-                text.push(self.parse_primary());
+                text.push(self.parse_emph());
             }
 
             while !self.starts_with_next(")") {
@@ -338,11 +298,29 @@ impl<'a> Parser<'a> {
 
             Link { text, url }
         } else {
+            self.parse_emph()
+        }
+    }
+
+    fn parse_emph(&mut self) -> Span {
+        if self.starts_with_next("**") {
+            let mut text = Vec::new();
+            while !self.starts_with_next("**") {
+                text.push(self.parse_emph());
+            }
+            Bold { text }
+        } else if self.starts_with_next("__") {
+            let mut text = Vec::new();
+            while !self.starts_with_next("__") {
+                text.push(self.parse_emph());
+            }
+            Ital { text }
+        } else {
             self.parse_primary()
         }
     }
 
-    fn parse_primary(&mut self) -> Prim {
+    fn parse_primary(&mut self) -> Span {
         // math
         if self.starts_with_next("$") {
             return self.parse_math();
@@ -357,7 +335,7 @@ impl<'a> Parser<'a> {
         self.parse_text()
     }
 
-    fn parse_math(&mut self) -> Prim {
+    fn parse_math(&mut self) -> Span {
         let mut math = String::new();
         while let Some(c) = self.next_char_until("$") {
             math.push_str(&self.escape(c));
@@ -365,7 +343,7 @@ impl<'a> Parser<'a> {
         Math { math }
     }
 
-    fn parse_code(&mut self) -> Prim {
+    fn parse_code(&mut self) -> Span {
         let mut code = String::new();
         while let Some(c) = self.next_char_until("`") {
             code.push_str(&self.escape(c));
@@ -373,7 +351,7 @@ impl<'a> Parser<'a> {
         Code { code }
     }
 
-    fn parse_text(&mut self) -> Prim {
+    fn parse_text(&mut self) -> Span {
         let mut text = String::new();
         loop {
             if ["**", "__", "[", "]", "$", "`", "\n", "\r\n"].iter().any(|prefix| self.chs.starts_with(prefix)) {
