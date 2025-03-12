@@ -344,17 +344,8 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_text(&mut self) -> Span {
-        let mut text = String::new();
-        loop {
-            if ["**", "__", "[", "]", "$", "`", "\n", "\r\n"].iter().any(|prefix| self.chs.starts_with(prefix)) {
-                break Text { text }
-            }
-            if let Some(c) = self.next_char_until_newline() {
-                text.push(c);
-            } else {
-                break Text { text }
-            }
-        }
+        let text = self.text_until2(&["**", "__", "[", "]", "$", "`", "\n", "\r\n"]);
+        Text { text: text.to_string() }
     }
 
     fn text_until(&mut self, terms: &[&str]) -> &str {
@@ -362,6 +353,21 @@ impl<'a> Parser<'a> {
         while !chs.as_str().is_empty() {
             if let Some(&term) = terms.iter().find(|&term| chs.as_str().starts_with(term)) {
                 chs = chs.as_str().trim_start_matches(term).chars();
+                break;
+            }
+            chs.next();
+        }
+        let rest = chs.as_str();
+        let idx = self.chs.len() - rest.len();
+        let text = &self.chs[..idx];
+        self.chs = rest;
+        text
+    }
+
+    fn text_until2(&mut self, terms: &[&str]) -> &str {
+        let mut chs = self.chs.chars();
+        while !chs.as_str().is_empty() {
+            if terms.iter().any(|&term| chs.as_str().starts_with(term)) {
                 break;
             }
             chs.next();
