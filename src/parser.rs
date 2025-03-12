@@ -318,32 +318,36 @@ impl<'a> Parser<'a> {
 
     fn text_until(&mut self, terms: &[&str]) -> &str {
         let mut chs = self.chs.chars();
+        let mut start = self.chs.len();
         while !chs.as_str().is_empty() {
             if terms.iter().any(|&term| chs.as_str().starts_with(term)) {
+                let rest = chs.as_str();
+                start -= rest.len();
                 break;
             }
             chs.next();
         }
-        let rest = chs.as_str();
-        let idx = self.chs.len() - rest.len();
-        let text = &self.chs[..idx];
-        self.chs = rest;
+        let text = &self.chs[..start];
+        self.chs = &self.chs[start..];
         text
     }
 
     fn text_until_trim(&mut self, terms: &[&str]) -> &str {
         let mut chs = self.chs.chars();
+        let mut start = self.chs.len();
+        let mut end = self.chs.len();
         while !chs.as_str().is_empty() {
             if let Some(&term) = terms.iter().find(|&term| chs.as_str().starts_with(term)) {
-                chs = chs.as_str().trim_start_matches(term).chars();
+                let rest = chs.as_str();
+                start -= rest.len();
+                let rest = rest.trim_start_matches(term);
+                end -= rest.len();
                 break;
             }
             chs.next();
         }
-        let rest = chs.as_str();
-        let idx = self.chs.len() - rest.len();
-        let text = &self.chs[..idx];
-        self.chs = rest;
+        let text = &self.chs[..start];
+        self.chs = &self.chs[end..];
         text
     }
 
