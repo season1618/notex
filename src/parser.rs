@@ -189,11 +189,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_embed(&mut self) -> Block {
-        let mut text = Vec::new();
-        while !self.starts_with_next("](") {
-            text.push(self.parse_link());
-        }
-
+        let text = self.parse_until_trim(Self::parse_link, &["]("]);
         let url = self.text_until_trim(&[")"]).to_string();
 
         if url.ends_with(".png") || url.ends_with(".jpg") {
@@ -265,19 +261,14 @@ impl<'a> Parser<'a> {
 
     fn parse_link(&mut self) -> Span {
         if self.starts_with_next("[") { // link
-            let mut text = Vec::new();
-
-            while !self.starts_with_next("](") {
-                text.push(self.parse_emph());
-            }
-
+            let text = self.parse_until_trim(Self::parse_emph, &["]("]);
             let url = self.text_until_trim(&[")", "\n", "\r\n"]);
 
-            if text.is_empty() {
-                text = vec![ Text { text: get_title(url) } ];
-            }
+            let text = if text.is_empty() {
+                Inline(vec![ Text { text: get_title(url) } ])
+            } else { Inline(text) };
 
-            Link { text: Inline(text), url: url.to_string() }
+            Link { text, url: url.to_string() }
         } else {
             self.parse_emph()
         }
@@ -285,17 +276,11 @@ impl<'a> Parser<'a> {
 
     fn parse_emph(&mut self) -> Span {
         if self.starts_with_next("**") {
-            let mut text = Vec::new();
-            while !self.starts_with_next("**") {
-                text.push(self.parse_emph());
-            }
-            Bold { text: Inline(text) }
+            let text = Inline(self.parse_until_trim(Self::parse_emph, &["**"]));
+            Bold { text }
         } else if self.starts_with_next("__") {
-            let mut text = Vec::new();
-            while !self.starts_with_next("__") {
-                text.push(self.parse_emph());
-            }
-            Ital { text: Inline(text) }
+            let text = Inline(self.parse_until_trim(Self::parse_emph, &["__"]));
+            Ital { text }
         } else {
             self.parse_primary()
         }
@@ -360,6 +345,18 @@ impl<'a> Parser<'a> {
         let text = &self.chs[..idx];
         self.chs = rest;
         text
+    }
+
+    fn parse_until_trim<T>(&mut self, mut parser: impl FnMut(&mut Self) -> T, terms: &[&str]) -> Vec<T> {
+        let mut res = Vec::new();
+        loop {
+            if let Some(term) = terms.iter().find(|&term| self.chs.starts_with(term)) {
+                self.chs = self.chs.trim_start_matches(term);
+                break;
+            }
+            res.push(parser(self));
+        }
+        res
     }
 
     fn next_char(&mut self) -> Option<char> {
