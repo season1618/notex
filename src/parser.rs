@@ -94,27 +94,27 @@ impl<'a> Parser<'a> {
         }
 
         // paragraph
-        return self.parse_paragraph();
+        self.parse_paragraph()
     }
 
     fn parse_header(&mut self, level: u32) -> Block {
         let mut header_toc = Vec::new();
         let mut header_id = String::new();
 
-        let header_cont = self.parse_spans();
-        for span in &header_cont {
+        let header = self.parse_spans();
+        for span in &header {
             match span {
                 Link { text, .. } => {
-                    for prim in text {
-                        header_toc.push(prim.clone());
+                    for span in text {
+                        header_toc.push(span.clone());
                     }
                 },
                 _ => header_toc.push(span.clone()),
             }
         }
 
-        for prim in &header_toc {
-            match prim {
+        for span in &header_toc {
+            match span {
                 Math { math } => header_id.push_str(math),
                 Code { code } => header_id.push_str(code),
                 Text { text } => header_id.push_str(text),
@@ -140,7 +140,7 @@ impl<'a> Parser<'a> {
                 list: List { ordered: true, items: Vec::new() },
             });
         }
-        Header { prims: header_cont, level, id: header_id }
+        Header { header, level, id: header_id }
     }
 
     fn parse_blockquote(&mut self) -> Block {

@@ -50,7 +50,7 @@ impl<'a> CodeGen<'a> {
         writeln!(self.dest)?;
         for block in content {
             match block {
-                Header { prims, level, id } => self.gen_header(prims, level, id, indent)?,
+                Header { header, level, id } => self.gen_header(header, level, id, indent)?,
                 Blockquote { lines } => self.gen_blockquote(lines, indent)?,
                 ListElement(list) => self.gen_list(list, indent)?,
                 Table { head, body } => self.gen_table(head, body, indent)?,
@@ -64,9 +64,9 @@ impl<'a> CodeGen<'a> {
         Ok(())
     }
 
-    fn gen_header(&mut self, prims: &Vec<Span>, level: &u32, id: &String, indent: usize) -> Result<(), io::Error> {
+    fn gen_header(&mut self, header: &Vec<Span>, level: &u32, id: &String, indent: usize) -> Result<(), io::Error> {
         write!(self.dest, "{:>indent$}<h{} id=\"{}\">", " ", *level, *id)?;
-        self.gen_spans(prims)?;
+        self.gen_spans(header)?;
         writeln!(self.dest, "</h{}>", *level)
     }
 
@@ -172,8 +172,8 @@ impl<'a> CodeGen<'a> {
         Ok(())
     }
 
-    fn gen_span(&mut self, prim: &Span) -> Result<(), io::Error> {
-        match prim {
+    fn gen_span(&mut self, span: &Span) -> Result<(), io::Error> {
+        match span {
             Link { text, url } => {
                 write!(self.dest, "<a href=\"{}\">", *url)?;
                 self.gen_spans(text)?;
