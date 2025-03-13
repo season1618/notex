@@ -279,29 +279,17 @@ impl<'a> Parser<'a> {
     fn parse_primary(&mut self) -> Span {
         // math
         if self.starts_with_next("$") {
-            return self.parse_math();
+            let math = self.text_until_trim(&["$"]);
+            return Math { math: math.to_string() };
         }
 
         // code
         if self.starts_with_next("`") {
-            return self.parse_code();
+            let code = self.text_until_trim(&["`"]);
+            return Code { code: code.to_string() };
         }
 
         // text
-        self.parse_text()
-    }
-
-    fn parse_math(&mut self) -> Span {
-        let math = self.text_until_trim(&["$"]);
-        Math { math: math.to_string() }
-    }
-
-    fn parse_code(&mut self) -> Span {
-        let code = self.text_until_trim(&["`"]);
-        Code { code: code.to_string() }
-    }
-
-    fn parse_text(&mut self) -> Span {
         let text = self.text_until(&["|", "**", "__", "[", "]", "$", "`", "\n", "\r\n"]);
         Text { text: text.to_string() }
     }
