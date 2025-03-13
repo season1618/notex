@@ -1,43 +1,43 @@
 use Span::*;
 
 #[derive(Debug)]
-pub enum Block {
-    Header { header: Inline, level: u32, id: String },
-    Blockquote { lines: Vec<Inline> },
-    ListElement(List),
-    Image { title: Inline, url: String },
+pub enum Block<'a> {
+    Header { header: Inline<'a>, level: u32, id: String },
+    Blockquote { lines: Vec<Inline<'a>> },
+    ListElement(List<'a>),
+    Image { title: Inline<'a>, url: String },
     LinkCard { title: String, image: Option<String>, url: String, description: Option<String>, site_name: Option<String> },
     MathBlock { math: String },
     CodeBlock { lang: String, code: String },
-    Table { head: Vec<Vec<Inline>>, body: Vec<Vec<Inline>> },
-    Paragraph { text: Inline },
+    Table { head: Vec<Vec<Inline<'a>>>, body: Vec<Vec<Inline<'a>>> },
+    Paragraph { text: Inline<'a> },
 }
 
 #[derive(Clone, Debug)]
-pub struct Inline(pub Vec<Span>);
+pub struct Inline<'a>(pub Vec<Span<'a>>);
 
 #[derive(Clone, Debug)]
-pub enum Span {
-    Link { text: Inline, url: String },
-    Bold { text: Inline },
-    Ital { text: Inline },
-    Math { math: String },
-    Code { code: String },
+pub enum Span<'a> {
+    Link { text: Inline<'a>, url: String },
+    Bold { text: Inline<'a> },
+    Ital { text: Inline<'a> },
+    Math { math: &'a str },
+    Code { code: &'a str },
     Text { text: String },
 }
 
 pub struct HtmlText<'a>(pub &'a str);
 
 #[derive(Debug)]
-pub struct List {
+pub struct List<'a> {
     pub ordered: bool,
-    pub items: Vec<ListItem>,
+    pub items: Vec<ListItem<'a>>,
 }
 
 #[derive(Debug)]
-pub struct ListItem {
-    pub item: Inline,
-    pub list: List,
+pub struct ListItem<'a> {
+    pub item: Inline<'a>,
+    pub list: List<'a>,
 }
 
 #[derive(Debug)]
@@ -54,7 +54,7 @@ pub enum Elem {
     Str(String),
 }
 
-impl std::fmt::Display for Inline {
+impl<'a> std::fmt::Display for Inline<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         for item in &self.0 {
             item.fmt(f)?;
@@ -63,7 +63,7 @@ impl std::fmt::Display for Inline {
     }
 }
 
-impl std::fmt::Display for Span {
+impl<'a> std::fmt::Display for Span<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             Link { text, url } => write!(f, "<a href=\"{url}\">{text}</a>"),

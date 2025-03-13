@@ -17,8 +17,8 @@ pub struct Parser<'a> {
     chs: &'a str,
     headers: MultiSet<String>,
     title: String,
-    toc: List,
-    content: Vec<Block>,
+    toc: List<'a>,
+    content: Vec<Block<'a>>,
 }
 
 impl<'a> Parser<'a> {
@@ -42,7 +42,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_block(&mut self) -> Block {
+    fn parse_block(&mut self) -> Block<'a> {
         // header
         if self.starts_with_next("# ") {
             return self.parse_header(1);
@@ -97,7 +97,7 @@ impl<'a> Parser<'a> {
         self.parse_paragraph()
     }
 
-    fn parse_header(&mut self, level: u32) -> Block {
+    fn parse_header(&mut self, level: u32) -> Block<'a> {
         let mut header_toc = Vec::new();
         let mut header_id = String::new();
 
@@ -143,7 +143,7 @@ impl<'a> Parser<'a> {
         Header { header, level, id: header_id }
     }
 
-    fn parse_blockquote(&mut self) -> Block {
+    fn parse_blockquote(&mut self) -> Block<'a> {
         let mut lines = Vec::new();
         while self.starts_with_next("> ") {
             lines.push(self.parse_inline());
@@ -151,7 +151,7 @@ impl<'a> Parser<'a> {
         Blockquote { lines }
     }
 
-    fn parse_list(&mut self, min_indent: usize) -> List {
+    fn parse_list(&mut self, min_indent: usize) -> List<'a> {
         let mut ordered = false;
         let mut items = Vec::new();
         while !self.chs.is_empty() {
@@ -184,7 +184,7 @@ impl<'a> Parser<'a> {
         List { ordered, items }
     }
 
-    fn parse_embed(&mut self) -> Block {
+    fn parse_embed(&mut self) -> Block<'a> {
         let text = self.parse_until_trim(Self::parse_link, &["]("]);
         let url = self.text_until_trim(&[")"]).to_string();
 
@@ -197,18 +197,18 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_math_block(&mut self) -> Block {
+    fn parse_math_block(&mut self) -> Block<'a> {
         let math = self.text_until_trim(&["$$"]).to_string();
         MathBlock { math }
     }
 
-    fn parse_code_block(&mut self) -> Block {
+    fn parse_code_block(&mut self) -> Block<'a> {
         let lang = self.text_until_trim(&["\n", "\r\n"]).to_string();
         let code = self.text_until_trim(&["```"]).to_string();
         CodeBlock { lang, code }
     }
 
-    fn parse_table(&mut self) -> Block {
+    fn parse_table(&mut self) -> Block<'a> {
         let mut head = Vec::new();
         let mut body = Vec::new();
         while let Some(row) = self.parse_table_row() {
@@ -220,7 +220,7 @@ impl<'a> Parser<'a> {
         Table { head, body }
     }
 
-    fn parse_table_row(&mut self) -> Option<Vec<Inline>> {
+    fn parse_table_row(&mut self) -> Option<Vec<Inline<'a>>> {
         if self.starts_with_next("-") {
             self.text_until_trim(&["\n", "\r\n"]);
             return None;
@@ -229,7 +229,7 @@ impl<'a> Parser<'a> {
             return None;
         }
 
-        let mut row: Vec<Inline> = Vec::new();
+        let mut row: Vec<Inline<'a>> = Vec::new();
         while !self.chs.is_empty() && !self.starts_with_newline_next() {
             let data = Inline(self.parse_until_trim(Self::parse_link, &["|"]));
             row.push(data);
@@ -237,11 +237,11 @@ impl<'a> Parser<'a> {
         Some(row)
     }
 
-    fn parse_paragraph(&mut self) -> Block {
+    fn parse_paragraph(&mut self) -> Block<'a> {
         Paragraph { text: self.parse_inline() }
     }
 
-    fn parse_inline(&mut self) -> Inline {
+    fn parse_inline(&mut self) -> Inline<'a> {
         let mut text = Vec::new();
         while !self.chs.is_empty() && !self.starts_with_newline_next() {
             text.push(self.parse_link());
@@ -249,22 +249,22 @@ impl<'a> Parser<'a> {
         Inline(text)
     }
 
-    fn parse_link(&mut self) -> Span {
+    fn parse_link(&mut self) -> Span<'a> {
         if self.starts_with_next("[") { // link
             let text = self.parse_until_trim(Self::parse_emph, &["]("]);
-            let url = self.text_until_trim(&[")", "\n", "\r\n"]);
+            let url = self.text_until_trim(&[")", "\n", "\r\n"]).to_string();
 
             let text = if text.is_empty() {
-                Inline(vec![ Text { text: get_title(url) } ])
+                Inline(vec![ Text { text: get_title(&url) } ])
             } else { Inline(text) };
 
-            Link { text, url: url.to_string() }
+            Link { text, url }
         } else {
             self.parse_emph()
         }
     }
 
-    fn parse_emph(&mut self) -> Span {
+    fn parse_emph(&mut self) -> Span<'a> {
         if self.starts_with_next("**") {
             let text = Inline(self.parse_until_trim(Self::parse_emph, &["**"]));
             Bold { text }
@@ -276,25 +276,25 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_primary(&mut self) -> Span {
+    fn parse_primary(&mut self) -> Span<'a> {
         // math
         if self.starts_with_next("$") {
             let math = self.text_until_trim(&["$"]);
-            return Math { math: math.to_string() };
+            return Math { math };
         }
 
         // code
         if self.starts_with_next("`") {
             let code = self.text_until_trim(&["`"]);
-            return Code { code: code.to_string() };
+            return Code { code };
         }
 
         // text
-        let text = self.text_until(&["|", "**", "__", "[", "]", "$", "`", "\n", "\r\n"]);
-        Text { text: text.to_string() }
+        let text = self.text_until(&["|", "**", "__", "[", "]", "$", "`", "\n", "\r\n"]).to_string();
+        Text { text }
     }
 
-    fn text_until(&mut self, terms: &[&str]) -> &str {
+    fn text_until(&mut self, terms: &[&str]) -> &'a str {
         let mut chs = self.chs.chars();
         let mut start = self.chs.len();
         while !chs.as_str().is_empty() {
@@ -310,7 +310,7 @@ impl<'a> Parser<'a> {
         text
     }
 
-    fn text_until_trim(&mut self, terms: &[&str]) -> &str {
+    fn text_until_trim(&mut self, terms: &[&str]) -> &'a str {
         let mut chs = self.chs.chars();
         let mut start = self.chs.len();
         let mut end = self.chs.len();
