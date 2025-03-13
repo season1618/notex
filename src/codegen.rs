@@ -95,7 +95,7 @@ impl<'a> CodeGen<'a> {
         writeln!(self.dest, "{indent}</{}>", if list.ordered { "ol" } else { "ul" })
     }
 
-    fn gen_image(&mut self, title: &Inline, url: &String, indent: usize) -> Result<(), io::Error> {
+    fn gen_image(&mut self, title: &Inline, url: &str, indent: usize) -> Result<(), io::Error> {
         let indent = " ".repeat(indent);
         writeln!(self.dest, "{indent}<div class=\"image\">")?;
         writeln!(self.dest, "{indent}  <img src=\"{url}\">")?;
@@ -103,7 +103,7 @@ impl<'a> CodeGen<'a> {
         writeln!(self.dest, "{indent}</div>")
     }
 
-    fn gen_link_card(&mut self, title: &String, image: &Option<String>, url: &String, description: &Option<String>, site_name: &Option<String>, indent: usize) -> Result<(), io::Error> {
+    fn gen_link_card(&mut self, title: &String, image: &Option<String>, url: &str, description: &Option<String>, site_name: &Option<String>, indent: usize) -> Result<(), io::Error> {
         let indent = " ".repeat(indent);
 
         writeln!(self.dest, "{indent}<div class=\"linkcard\"><a class=\"linkcard-link\" href=\"{url}\">")?;
@@ -112,7 +112,7 @@ impl<'a> CodeGen<'a> {
         if let Some(desc) = description {
             writeln!(self.dest, "{indent}    <p class=\"linkcard-description\">{desc}</p>")?;
         }
-        writeln!(self.dest, "{indent}    <img class=\"linkcard-favicon\" src=\"http://www.google.com/s2/favicons?domain={url}\"><span  class=\"linkcard-sitename\">{}</span>", site_name.clone().unwrap_or(url.clone()))?;
+        writeln!(self.dest, "{indent}    <img class=\"linkcard-favicon\" src=\"http://www.google.com/s2/favicons?domain={url}\"><span  class=\"linkcard-sitename\">{}</span>", site_name.clone().unwrap_or(url.to_string()))?;
         writeln!(self.dest, "{indent}  </div>")?;
         if let Some(img) = image {
             writeln!(self.dest, "{indent}  <img class=\"linkcard-image\" src=\"{img}\">")?;
@@ -148,12 +148,12 @@ impl<'a> CodeGen<'a> {
         writeln!(self.dest, "{indent}</table>")
     }
 
-    fn gen_math_block(&mut self, math: &String, indent: usize) -> Result<(), io::Error> {
+    fn gen_math_block(&mut self, math: &str, indent: usize) -> Result<(), io::Error> {
         let indent = " ".repeat(indent);
         writeln!(self.dest, "{indent}<p>\\[{}\\]</p>", HtmlText(math))
     }
 
-    fn gen_code_block(&mut self, lang: &String, code: &String, indent: usize) -> Result<(), io::Error> {
+    fn gen_code_block(&mut self, lang: &str, code: &str, indent: usize) -> Result<(), io::Error> {
         let indent = " ".repeat(indent);
         let lang = if lang == "" { "plaintext" } else { lang };
         writeln!(self.dest, "{indent}<pre><code class=\"language-{lang}\">{}</code></pre>", HtmlText(code))

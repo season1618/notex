@@ -186,7 +186,7 @@ impl<'a> Parser<'a> {
 
     fn parse_embed(&mut self) -> Block<'a> {
         let text = self.parse_until_trim(Self::parse_link, &["]("]);
-        let url = self.text_until_trim(&[")"]).to_string();
+        let url = self.text_until_trim(&[")"]);
 
         if url.ends_with(".png") || url.ends_with(".jpg") {
             let title = Inline(text);
@@ -198,13 +198,13 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_math_block(&mut self) -> Block<'a> {
-        let math = self.text_until_trim(&["$$"]).to_string();
+        let math = self.text_until_trim(&["$$"]);
         MathBlock { math }
     }
 
     fn parse_code_block(&mut self) -> Block<'a> {
-        let lang = self.text_until_trim(&["\n", "\r\n"]).to_string();
-        let code = self.text_until_trim(&["```"]).to_string();
+        let lang = self.text_until_trim(&["\n", "\r\n"]);
+        let code = self.text_until_trim(&["```"]);
         CodeBlock { lang, code }
     }
 
