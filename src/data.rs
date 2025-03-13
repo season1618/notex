@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use Span::*;
 
 #[derive(Debug)]
@@ -18,12 +19,12 @@ pub struct Inline<'a>(pub Vec<Span<'a>>);
 
 #[derive(Clone, Debug)]
 pub enum Span<'a> {
-    Link { text: Inline<'a>, url: String },
+    Link { text: Inline<'a>, url: Cow<'a, str> },
     Bold { text: Inline<'a> },
     Ital { text: Inline<'a> },
     Math { math: &'a str },
     Code { code: &'a str },
-    Text { text: String },
+    Text { text: Cow<'a, str> },
 }
 
 pub struct HtmlText<'a>(pub &'a str);

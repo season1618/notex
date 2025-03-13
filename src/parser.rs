@@ -136,7 +136,7 @@ impl<'a> Parser<'a> {
                 cur = &mut cur.items.last_mut().unwrap().list;
             }
             cur.items.push(ListItem {
-                item: Inline(vec![ Link { text: Inline(header_toc), url: format!("#{}", &header_id) } ]),
+                item: Inline(vec![ Link { text: Inline(header_toc), url: format!("#{}", &header_id).into() } ]),
                 list: List { ordered: true, items: Vec::new() },
             });
         }
@@ -252,10 +252,10 @@ impl<'a> Parser<'a> {
     fn parse_link(&mut self) -> Span<'a> {
         if self.starts_with_next("[") { // link
             let text = self.parse_until_trim(Self::parse_emph, &["]("]);
-            let url = self.text_until_trim(&[")", "\n", "\r\n"]).to_string();
+            let url: std::borrow::Cow<'a, str> = self.text_until_trim(&[")", "\n", "\r\n"]).into();
 
             let text = if text.is_empty() {
-                Inline(vec![ Text { text: get_title(&url) } ])
+                Inline(vec![ Text { text: get_title(url.as_ref()).into() } ])
             } else { Inline(text) };
 
             Link { text, url }
@@ -290,7 +290,7 @@ impl<'a> Parser<'a> {
         }
 
         // text
-        let text = self.text_until(&["|", "**", "__", "[", "]", "$", "`", "\n", "\r\n"]).to_string();
+        let text = self.text_until(&["|", "**", "__", "[", "]", "$", "`", "\n", "\r\n"]).into();
         Text { text }
     }
 
