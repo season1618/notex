@@ -246,11 +246,11 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_inline(&mut self) -> Inline {
-        let mut spans = Vec::new();
+        let mut text = Vec::new();
         while !self.chs.is_empty() && !self.starts_with_newline_next() {
-            spans.push(self.parse_link());
+            text.push(self.parse_link());
         }
-        Inline(spans)
+        Inline(text)
     }
 
     fn parse_link(&mut self) -> Span {
