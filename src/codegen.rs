@@ -51,7 +51,7 @@ impl<'a> CodeGen<'a> {
             match block {
                 Header { header, level, id } => self.gen_header(header, level, id, indent)?,
                 Blockquote { lines } => self.gen_blockquote(lines, indent)?,
-                ListElement(list) => self.gen_list(list, indent)?,
+                ListBlock(list) => self.gen_list(list, indent)?,
                 Table { head, body } => self.gen_table(head, body, indent)?,
                 Image { title, url } => self.gen_image(title, url, indent)?,
                 LinkCard { title, image, url, description, site_name } => self.gen_link_card(title, image, url, description, site_name, indent)?,

@@ -5,13 +5,25 @@ use Span::*;
 pub enum Block<'a> {
     Header { header: Inline<'a>, level: u32, id: String },
     Blockquote { lines: Vec<Inline<'a>> },
-    ListElement(List<'a>),
+    ListBlock(List<'a>),
     Image { title: Inline<'a>, url: &'a str },
     LinkCard { title: String, image: Option<String>, url: &'a str, description: Option<String>, site_name: Option<String> },
+    Table { head: Vec<Vec<Inline<'a>>>, body: Vec<Vec<Inline<'a>>> },
     MathBlock { math: &'a str },
     CodeBlock { lang: &'a str, code: &'a str },
-    Table { head: Vec<Vec<Inline<'a>>>, body: Vec<Vec<Inline<'a>>> },
     Paragraph { text: Inline<'a> },
+}
+
+#[derive(Debug)]
+pub struct List<'a> {
+    pub ordered: bool,
+    pub items: Vec<ListItem<'a>>,
+}
+
+#[derive(Debug)]
+pub struct ListItem<'a> {
+    pub item: Inline<'a>,
+    pub list: List<'a>,
 }
 
 #[derive(Clone, Debug)]
@@ -28,18 +40,6 @@ pub enum Span<'a> {
 }
 
 pub struct HtmlText<'a>(pub &'a str);
-
-#[derive(Debug)]
-pub struct List<'a> {
-    pub ordered: bool,
-    pub items: Vec<ListItem<'a>>,
-}
-
-#[derive(Debug)]
-pub struct ListItem<'a> {
-    pub item: Inline<'a>,
-    pub list: List<'a>,
-}
 
 #[derive(Debug)]
 pub enum Elem {

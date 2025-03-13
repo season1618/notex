@@ -70,12 +70,17 @@ impl<'a> Parser<'a> {
 
         // list
         if self.chs.starts_with("+ ") || self.chs.starts_with("- ") {
-            return ListElement(self.parse_list(0));
+            return ListBlock(self.parse_list(0));
         }
 
         // embed
         if self.starts_with_next("@[") {
             return self.parse_embed();
+        }
+
+        // table
+        if self.chs.starts_with("|") {
+            return self.parse_table();
         }
 
         // math block
@@ -86,11 +91,6 @@ impl<'a> Parser<'a> {
         // code block
         if self.starts_with_next("```") {
             return self.parse_code_block();
-        }
-
-        // table
-        if self.chs.starts_with("|") {
-            return self.parse_table();
         }
 
         // paragraph
@@ -197,17 +197,6 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_math_block(&mut self) -> Block<'a> {
-        let math = self.text_until_trim(&["$$"]);
-        MathBlock { math }
-    }
-
-    fn parse_code_block(&mut self) -> Block<'a> {
-        let lang = self.text_until_trim(&["\n", "\r\n"]);
-        let code = self.text_until_trim(&["```"]);
-        CodeBlock { lang, code }
-    }
-
     fn parse_table(&mut self) -> Block<'a> {
         let mut head = Vec::new();
         let mut body = Vec::new();
@@ -235,6 +224,17 @@ impl<'a> Parser<'a> {
             row.push(data);
         }
         Some(row)
+    }
+
+    fn parse_math_block(&mut self) -> Block<'a> {
+        let math = self.text_until_trim(&["$$"]);
+        MathBlock { math }
+    }
+
+    fn parse_code_block(&mut self) -> Block<'a> {
+        let lang = self.text_until_trim(&["\n", "\r\n"]);
+        let code = self.text_until_trim(&["```"]);
+        CodeBlock { lang, code }
     }
 
     fn parse_paragraph(&mut self) -> Block<'a> {
