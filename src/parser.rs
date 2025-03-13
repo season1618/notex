@@ -155,12 +155,8 @@ impl<'a> Parser<'a> {
         let mut ordered = false;
         let mut items = Vec::new();
         while !self.chs.is_empty() {
-            let mut indent = 0;
-            let mut chs = self.chs;
-            while let Some(rest) = chs.strip_prefix(" ") {
-                chs = rest;
-                indent += 1;
-            }
+            let chs = self.chs.trim_start_matches(' ');
+            let indent = self.chs.len() - chs.len();
 
             if min_indent <= indent {
                 self.chs = chs;
