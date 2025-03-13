@@ -224,25 +224,19 @@ impl<'a> Parser<'a> {
         Table { head, body }
     }
 
-    fn parse_table_row(&mut self) -> Option<Vec<String>> {
+    fn parse_table_row(&mut self) -> Option<Vec<Inline>> {
+        if self.starts_with_next("-") {
+            self.text_until_trim(&["\n", "\r\n"]);
+            return None;
+        }
         if !self.starts_with_next("|") {
             return None;
         }
 
-        let mut row: Vec<String> = Vec::new();
+        let mut row: Vec<Inline> = Vec::new();
         while !self.chs.is_empty() && !self.starts_with_newline_next() {
-            let mut data = String::new();
-            loop {
-                match self.next_char() {
-                    Some('|') => break,
-                    Some(c)   => data.push(c),
-                    None      => break,
-                }
-            }
-            row.push(data.trim_start().trim_end().to_string());
-        }
-        if row.iter().all(|s| s.chars().all(|c| c == '-')) {
-            return None;
+            let data = Inline(self.parse_until_trim(Self::parse_link, &["|"]));
+            row.push(data);
         }
         Some(row)
     }
@@ -312,7 +306,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_text(&mut self) -> Span {
-        let text = self.text_until(&["**", "__", "[", "]", "$", "`", "\n", "\r\n"]);
+        let text = self.text_until(&["|", "**", "__", "[", "]", "$", "`", "\n", "\r\n"]);
         Text { text: text.to_string() }
     }
 
@@ -361,16 +355,6 @@ impl<'a> Parser<'a> {
             res.push(parser(self));
         }
         res
-    }
-
-    fn next_char(&mut self) -> Option<char> {
-        let mut chs = self.chs.chars();
-        if let Some(c) = chs.next() {
-            self.chs = chs.as_str();
-            Some(c)
-        } else {
-            None
-        }
     }
 
     fn starts_with_next(&mut self, prefix: &str) -> bool {

@@ -9,7 +9,7 @@ pub enum Block {
     LinkCard { title: String, image: Option<String>, url: String, description: Option<String>, site_name: Option<String> },
     MathBlock { math: String },
     CodeBlock { lang: String, code: String },
-    Table { head: Vec<Vec<String>>, body: Vec<Vec<String>> },
+    Table { head: Vec<Vec<Inline>>, body: Vec<Vec<Inline>> },
     Paragraph { text: Inline },
 }
 

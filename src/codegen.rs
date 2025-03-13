@@ -120,7 +120,7 @@ impl<'a> CodeGen<'a> {
         writeln!(self.dest, "{indent}</a></div>")
     }
 
-    fn gen_table(&mut self, head: &Vec<Vec<String>>, body: &Vec<Vec<String>>, indent: usize) -> Result<(), io::Error> {
+    fn gen_table(&mut self, head: &Vec<Vec<Inline>>, body: &Vec<Vec<Inline>>, indent: usize) -> Result<(), io::Error> {
         let indent = " ".repeat(indent);
 
         writeln!(self.dest, "{indent}<table>")?;
@@ -129,7 +129,7 @@ impl<'a> CodeGen<'a> {
         for row in head {
             writeln!(self.dest, "{indent}    <tr>")?;
             for data in row {
-                writeln!(self.dest, "{indent}      <td>{}</td>", HtmlText(data))?;
+                writeln!(self.dest, "{indent}      <td>{data}</td>")?;
             }
             writeln!(self.dest, "{indent}    </tr>")?;
         }
@@ -139,7 +139,7 @@ impl<'a> CodeGen<'a> {
         for row in body {
             writeln!(self.dest, "{indent}    <tr>")?;
             for data in row {
-                writeln!(self.dest, "{indent}      <td>{}</td>", HtmlText(data))?;
+                writeln!(self.dest, "{indent}      <td>{data}</td>")?;
             }
             writeln!(self.dest, "{indent}    </tr>")?;
         }
