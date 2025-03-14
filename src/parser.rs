@@ -339,7 +339,7 @@ impl<'a> Parser<'a> {
             if let Some(&term) = terms.iter().find(|&term| chs.as_str().starts_with(term)) {
                 let rest = chs.as_str();
                 start -= rest.len();
-                let rest = rest.trim_start_matches(term);
+                let rest = rest.strip_prefix(term).unwrap();
                 end -= rest.len();
                 break;
             }
@@ -354,7 +354,7 @@ impl<'a> Parser<'a> {
         let mut res = Vec::new();
         loop {
             if let Some(term) = terms.iter().find(|&term| self.chs.starts_with(term)) {
-                self.chs = self.chs.trim_start_matches(term);
+                self.chs = self.chs.strip_prefix(term).unwrap();
                 break;
             }
             res.push(parser(self));
