@@ -43,10 +43,8 @@ impl<'a> Parser<'a> {
             }
         }
 
-        let mut refs = Vec::new();
-        refs.append(&mut self.notes);
-
-        self.content.push(Ref(refs));
+        let refs = self.catch_refs();
+        self.content.push(refs);
     }
 
     fn parse_block(&mut self) -> Block<'a> {
@@ -98,6 +96,11 @@ impl<'a> Parser<'a> {
         // code block
         if self.starts_with_next("```") {
             return self.parse_code_block();
+        }
+
+        // reference
+        if self.starts_with_next("[^]") {
+            return self.catch_refs();
         }
 
         // paragraph
@@ -247,6 +250,13 @@ impl<'a> Parser<'a> {
 
     fn parse_paragraph(&mut self) -> Block<'a> {
         Paragraph { text: self.parse_inline() }
+    }
+
+    fn catch_refs(&mut self) -> Block<'a> {
+        let mut refs = Vec::new();
+        refs.append(&mut self.notes);
+
+        Ref(refs)
     }
 
     fn parse_inline(&mut self) -> Inline<'a> {

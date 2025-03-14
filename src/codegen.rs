@@ -166,6 +166,10 @@ impl<'a> CodeGen<'a> {
     }
 
     fn gen_ref(&mut self, notes: &Vec<(Inline, usize)>, indent: usize) -> Result<(), io::Error> {
+        if notes.is_empty() {
+            return Ok(());
+        }
+
         let indent = " ".repeat(indent);
 
         writeln!(self.dest, "{indent}<div class=\"ref\">")?;
