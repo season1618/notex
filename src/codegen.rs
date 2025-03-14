@@ -58,6 +58,7 @@ impl<'a> CodeGen<'a> {
                 MathBlock { math } => self.gen_math_block(math, indent)?,
                 CodeBlock { lang, code } => self.gen_code_block(lang, code, indent)?,
                 Paragraph { text } => self.gen_paragraph(text, indent)?,
+                Ref(notes) => self.gen_ref(notes, indent)?,
             }
         }
         Ok(())
@@ -162,5 +163,15 @@ impl<'a> CodeGen<'a> {
     fn gen_paragraph(&mut self, text: &Inline, indent: usize) -> Result<(), io::Error> {
         let indent = " ".repeat(indent);
         writeln!(self.dest, "{indent}<p>{text}</p>")
+    }
+
+    fn gen_ref(&mut self, notes: &Vec<(Inline, usize)>, indent: usize) -> Result<(), io::Error> {
+        let indent = " ".repeat(indent);
+
+        writeln!(self.dest, "{indent}<div class=\"ref\">")?;
+        for (note, id) in notes {
+            writeln!(self.dest, "{indent}  <p id=\"ref-{id}\"><a href=\"#cite-{id}\">[{id}]</a> {note}</p>")?;
+        }
+        writeln!(self.dest, "{indent}</div>")
     }
 }

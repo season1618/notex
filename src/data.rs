@@ -12,6 +12,7 @@ pub enum Block<'a> {
     MathBlock { math: &'a str },
     CodeBlock { lang: &'a str, code: &'a str },
     Paragraph { text: Inline<'a> },
+    Ref(Vec<(Inline<'a>, usize)>),
 }
 
 #[derive(Debug)]
@@ -31,6 +32,7 @@ pub struct Inline<'a>(pub Vec<Span<'a>>);
 
 #[derive(Clone, Debug)]
 pub enum Span<'a> {
+    Cite { id: usize },
     Link { text: Inline<'a>, url: Cow<'a, str> },
     Bold { text: Inline<'a> },
     Ital { text: Inline<'a> },
@@ -67,6 +69,7 @@ impl<'a> std::fmt::Display for Inline<'a> {
 impl<'a> std::fmt::Display for Span<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
+            Cite { id} => write!(f, "<sup id=\"cite-{id}\"><a href=\"#ref-{id}\">[{id}]</a></sup>"),
             Link { text, url } => write!(f, "<a href=\"{url}\">{text}</a>"),
             Bold { text } => write!(f, "<strong>{text}</strong>"),
             Ital { text } => write!(f, "<em>{text}</em>"),

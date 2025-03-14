@@ -16,6 +16,7 @@ pub fn parse(doc: &str) -> (String, List, Vec<Block>) {
 pub struct Parser<'a> {
     chs: &'a str,
     headers: MultiSet<String>,
+    notes: Vec<(Inline<'a>, usize)>, note_id: usize,
     title: String,
     toc: List<'a>,
     content: Vec<Block<'a>>,
@@ -26,6 +27,7 @@ impl<'a> Parser<'a> {
         Parser {
             chs: doc,
             headers: MultiSet::new(),
+            notes: Vec::new(), note_id: 0,
             title: String::new(),
             toc: List { ordered: true, items: Vec::new() },
             content: Vec::new(),
@@ -40,6 +42,11 @@ impl<'a> Parser<'a> {
                 _ => { self.content.push(block); },
             }
         }
+
+        let mut refs = Vec::new();
+        refs.append(&mut self.notes);
+
+        self.content.push(Ref(refs));
     }
 
     fn parse_block(&mut self) -> Block<'a> {
@@ -185,7 +192,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_embed(&mut self) -> Block<'a> {
-        let text = self.parse_until_trim(Self::parse_link, &["]("]);
+        let text = self.parse_until_trim(Self::parse_cite, &["]("]);
         let url = self.text_until_trim(&[")"]);
 
         if url.ends_with(".png") || url.ends_with(".jpg") {
@@ -220,7 +227,7 @@ impl<'a> Parser<'a> {
 
         let mut row: Vec<Inline<'a>> = Vec::new();
         while !self.chs.is_empty() && !self.starts_with_newline_next() {
-            let data = Inline(self.parse_until_trim(Self::parse_link, &["|"]));
+            let data = Inline(self.parse_until_trim(Self::parse_cite, &["|"]));
             row.push(data);
         }
         Some(row)
@@ -244,9 +251,23 @@ impl<'a> Parser<'a> {
     fn parse_inline(&mut self) -> Inline<'a> {
         let mut text = Vec::new();
         while !self.chs.is_empty() && !self.starts_with_newline_next() {
-            text.push(self.parse_link());
+            text.push(self.parse_cite());
         }
         Inline(text)
+    }
+
+    fn parse_cite(&mut self) -> Span<'a> {
+        if self.starts_with_next("[^") {
+            self.note_id += 1;
+            let note = Inline(self.parse_until_trim(Self::parse_link, &["]"]));
+            let id = self.note_id;
+
+            self.notes.push((note, id));
+
+            Cite { id }
+        } else {
+            self.parse_link()
+        }
     }
 
     fn parse_link(&mut self) -> Span<'a> {
