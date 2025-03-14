@@ -105,12 +105,12 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_header(&mut self, level: u32) -> Block<'a> {
-        let mut header_toc = Vec::new();
-        let mut header_id = String::new();
-
         let header = self.parse_inline();
+
+        let mut header_toc = Vec::new();
         for span in &header.0 {
             match span {
+                Cite { .. } => {},
                 Link { text, .. } => {
                     for span in &text.0 {
                         header_toc.push(span.clone());
@@ -120,6 +120,7 @@ impl<'a> Parser<'a> {
             }
         }
 
+        let mut header_id = String::new();
         for span in &header_toc {
             match span {
                 Math { math } => header_id.push_str(math),
