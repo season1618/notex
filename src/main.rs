@@ -7,7 +7,7 @@ pub mod codegen;
 use std::env;
 use std::fs::{self, File};
 
-use crate::parser::parse_markdown;
+use crate::parser::parse;
 use crate::template::read_template;
 use crate::codegen::gen_html;
 
@@ -23,7 +23,7 @@ fn main(){
         return;
     };
 
-    let (title, toc, content) = parse_markdown(&doc);
+    let (title, toc, content) = parse(&doc);
 
     let Ok(temp) = read_template(temp_path) else {
         println!("could not open or read the template file.");
