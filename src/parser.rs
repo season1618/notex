@@ -64,7 +64,7 @@ impl<'a> Parser<'a> {
         }
 
         // blockquote
-        if self.chs.starts_with("> ") {
+        if self.starts_with_next(">>") {
             return self.parse_blockquote();
         }
 
@@ -145,7 +145,7 @@ impl<'a> Parser<'a> {
 
     fn parse_blockquote(&mut self) -> Block<'a> {
         let mut lines = Vec::new();
-        while self.starts_with_next("> ") {
+        while !self.starts_with_next("<<") {
             lines.push(self.parse_inline());
         }
         Blockquote { lines }
