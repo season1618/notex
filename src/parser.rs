@@ -284,7 +284,7 @@ impl<'a> Parser<'a> {
     fn parse_link(&mut self) -> Span<'a> {
         if self.starts_with_next("[") { // link
             let text = self.parse_until_trim(Self::parse_emph, &["]("]);
-            let url: std::borrow::Cow<'a, str> = self.read_until_trim(&[")", "\n", "\r\n"]).into();
+            let url: std::borrow::Cow<'a, str> = self.read_until_trim(&[")"]).into();
 
             let text = if text.is_empty() {
                 Inline(vec![ Text { text: get_title(url.as_ref()).into() } ])
