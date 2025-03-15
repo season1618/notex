@@ -1,6 +1,8 @@
 # Notex
 Markup Language and Converter for HTML
 
+https://season1618.github.io/notex/
+
 build:
 ```
 $ cargo build --release
@@ -8,5 +10,5 @@ $ cargo build --release
 
 convert:
 ```
-$ notex.exe <template>.html <source>.md (<destination>.html)
+$ <notex> <template>.html <source>.md (<destination>.html)
 ```
