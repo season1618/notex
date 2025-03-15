@@ -197,7 +197,7 @@ impl<'a> Parser<'a> {
 
     fn parse_embed(&mut self) -> Block<'a> {
         let text = self.parse_until_trim(Self::parse_cite, &["]("]);
-        let url = self.text_until_trim(&[")"]);
+        let url = self.read_until_trim(&[")"]);
 
         if url.ends_with(".png") || url.ends_with(".jpg") {
             let title = Inline(text);
@@ -222,7 +222,7 @@ impl<'a> Parser<'a> {
 
     fn parse_table_row(&mut self) -> Option<Vec<Inline<'a>>> {
         if self.starts_with_next("-") {
-            self.text_until_trim(&["\n", "\r\n"]);
+            self.read_until_trim(&["\n", "\r\n"]);
             return None;
         }
         if !self.starts_with_next("|") {
@@ -238,13 +238,13 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_math_block(&mut self) -> Block<'a> {
-        let math = self.text_until_trim(&["$$"]);
+        let math = self.read_until_trim(&["$$"]);
         MathBlock { math }
     }
 
     fn parse_code_block(&mut self) -> Block<'a> {
-        let lang = self.text_until_trim(&["\n", "\r\n"]);
-        let code = self.text_until_trim(&["```"]);
+        let lang = self.read_until_trim(&["\n", "\r\n"]);
+        let code = self.read_until_trim(&["```"]);
         CodeBlock { lang, code }
     }
 
@@ -284,7 +284,7 @@ impl<'a> Parser<'a> {
     fn parse_link(&mut self) -> Span<'a> {
         if self.starts_with_next("[") { // link
             let text = self.parse_until_trim(Self::parse_emph, &["]("]);
-            let url: std::borrow::Cow<'a, str> = self.text_until_trim(&[")", "\n", "\r\n"]).into();
+            let url: std::borrow::Cow<'a, str> = self.read_until_trim(&[")", "\n", "\r\n"]).into();
 
             let text = if text.is_empty() {
                 Inline(vec![ Text { text: get_title(url.as_ref()).into() } ])
@@ -311,22 +311,22 @@ impl<'a> Parser<'a> {
     fn parse_primary(&mut self) -> Span<'a> {
         // math
         if self.starts_with_next("$") {
-            let math = self.text_until_trim(&["$"]);
+            let math = self.read_until_trim(&["$"]);
             return Math { math };
         }
 
         // code
         if self.starts_with_next("`") {
-            let code = self.text_until_trim(&["`"]);
+            let code = self.read_until_trim(&["`"]);
             return Code { code };
         }
 
         // text
-        let text = self.text_until(&["|", "**", "__", "[", "]", "$", "`", "\n", "\r\n"]).into();
+        let text = self.read_until(&["|", "**", "__", "[", "]", "$", "`", "\n", "\r\n"]).into();
         Text { text }
     }
 
-    fn text_until(&mut self, terms: &[&str]) -> &'a str {
+    fn read_until(&mut self, terms: &[&str]) -> &'a str {
         let mut chs = self.chs.chars();
         let mut start = self.chs.len();
         while !chs.as_str().is_empty() {
@@ -342,7 +342,7 @@ impl<'a> Parser<'a> {
         text
     }
 
-    fn text_until_trim(&mut self, terms: &[&str]) -> &'a str {
+    fn read_until_trim(&mut self, terms: &[&str]) -> &'a str {
         let mut chs = self.chs.chars();
         let mut start = self.chs.len();
         let mut end = self.chs.len();
