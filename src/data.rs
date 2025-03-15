@@ -42,6 +42,7 @@ pub enum Span<'a> {
 }
 
 pub struct HtmlText<'a>(pub &'a str);
+pub struct MathText<'a>(pub &'a str);
 
 #[derive(Debug)]
 pub enum Elem {
@@ -73,7 +74,7 @@ impl<'a> std::fmt::Display for Span<'a> {
             Link { text, url } => write!(f, "<a href=\"{url}\">{text}</a>"),
             Bold { text } => write!(f, "<strong>{text}</strong>"),
             Ital { text } => write!(f, "<em>{text}</em>"),
-            Math { math } => write!(f, "\\({}\\)", HtmlText(math)),
+            Math { math } => write!(f, "\\({}\\)", MathText(math)),
             Code { code } => write!(f, "<code>{}</code>", HtmlText(code)),
             Text { text } => write!(f, "{}", HtmlText(text)),
         }
@@ -91,6 +92,15 @@ impl<'a> std::fmt::Display for HtmlText<'a> {
             } else {
                 escape(c, f)?;
             }
+        }
+        Ok(())
+    }
+}
+
+impl<'a> std::fmt::Display for MathText<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        for c in self.0.chars() {
+            escape(c, f)?;
         }
         Ok(())
     }

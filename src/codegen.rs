@@ -151,7 +151,7 @@ impl<'a> CodeGen<'a> {
 
     fn gen_math_block(&mut self, math: &str, indent: usize) -> Result<(), io::Error> {
         let indent = " ".repeat(indent);
-        writeln!(self.dest, "{indent}<p>\\[{}\\]</p>", HtmlText(math))
+        writeln!(self.dest, "{indent}<p>\\[{}\\]</p>", MathText(math))
     }
 
     fn gen_code_block(&mut self, lang: &str, code: &str, indent: usize) -> Result<(), io::Error> {
