@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="./index.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script>
+  <script>hljs.highlightAll();</script>
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <title>Notex</title>
+</head>
+<body>
+  <nav id="toc">
+    <h4><a href="#Notex">Notex</a></h4>
+    
+    <ol>
+      <li>
+        <a href="#概要">概要</a>
+        <ol>
+          <li>
+            <a href="#属性">属性</a>
+          </li>
+          <li>
+            <a href="#テンプレートの例">テンプレートの例</a>
+          </li>
+        </ol>
+      </li>
+      <li>
+        <a href="#文法">文法</a>
+        <ol>
+          <li>
+            <a href="#見出し">見出し</a>
+          </li>
+          <li>
+            <a href="#強調">強調</a>
+          </li>
+          <li>
+            <a href="#リンク">リンク</a>
+          </li>
+          <li>
+            <a href="#注">注</a>
+          </li>
+          <li>
+            <a href="#リスト">リスト</a>
+          </li>
+          <li>
+            <a href="#表">表</a>
+          </li>
+          <li>
+            <a href="#画像">画像</a>
+          </li>
+          <li>
+            <a href="#リンクカード">リンクカード</a>
+          </li>
+          <li>
+            <a href="#引用">引用</a>
+          </li>
+          <li>
+            <a href="#数式">数式</a>
+          </li>
+          <li>
+            <a href="#コード">コード</a>
+          </li>
+        </ol>
+      </li>
+      <li>
+        <a href="#形式文法">形式文法</a>
+      </li>
+    </ol>
+
+  </nav>
+  <div id="content">
+    <p style="text-align: right;">最終更新: 2025/03/15 22:56:24</p>
+    
+    <h1 id="Notex">Notex</h1>
+    <p>自作マークアップ言語</p>
+    <div class="linkcard"><a class="linkcard-link" href="https://github.com/season1618/notex">
+      <div class="linkcard-text">
+        <h3 class="linkcard-title">GitHub - season1618/notex: Markup Language and Converter for HTML</h3>
+        <p class="linkcard-description">Markup Language and Converter for HTML. Contribute to season1618/notex development by creating an account on GitHub.</p>
+        <img class="linkcard-favicon" src="http://www.google.com/s2/favicons?domain=https://github.com/season1618/notex"><span  class="linkcard-sitename">GitHub</span>
+      </div>
+      <img class="linkcard-image" src="https://opengraph.githubassets.com/e5ea1fa44e059c69ea4320c057ce9fdc02f2d01b0403680b10388ad3fa915876/season1618/notex">
+    </a></div>
+    <h2 id="概要">概要</h2>
+    <p>文書、テンプレートHTML、出力ファイルを用意して実行。</p>
+    <pre><code class="language-plaintext">$ &lt;notex&gt; &lt;template&gt;.html &lt;source&gt;.md (&lt;destination&gt;.html)
+</code></pre>
+    <p>スタイルはCSSで指定する。</p>
+    <h3 id="属性">属性</h3>
+    <p>文書から各種データを抽出しテンプレート中の<code>{属性名}</code>に埋め込む。利用可能なデータは以下の通り。</p>
+    <ul>
+      <li>
+        <code>title</code>: h1タグ<code>#</code>の見出しを文書のタイトルとして用いる。
+      </li>
+      <li>
+        <code>toc</code>: 文書中の見出しから目次を生成し順序付きリストとして表示。
+      </li>
+      <li>
+        <code>year</code>, <code>month</code>, <code>day</code>, <code>hour</code>, <code>minute</code>, <code>second</code>: 文書をHTMLに変換した時刻。
+      </li>
+      <li>
+        <code>content</code>: 本文。
+      </li>
+    </ul>
+    <h3 id="テンプレートの例">テンプレートの例</h3>
+    <p>この文書のテンプレートを示す。</p>
+    <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;link rel="stylesheet" href="./index.css"&gt;
+  &lt;!-- 省略 --&gt;
+  &lt;title&gt;{title}&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;nav id="toc"&gt;
+    &lt;h4&gt;&lt;a href="#{title}"&gt;{title}&lt;/a&gt;&lt;/h4&gt;
+    {toc}
+  &lt;/nav&gt;
+  &lt;div id="content"&gt;
+    &lt;p style="text-align: right;"&gt;最終更新: {year}/{month}/{day} {hour}:{minute}:{second}&lt;/p&gt;
+    {content}
+  &lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+    <h2 id="文法">文法</h2>
+    <h3 id="見出し">見出し</h3>
+    <p><code># </code>, <code>## </code>, <code>### </code>, <code>#### </code>, <code>##### </code>, <code>###### </code>の後に見出しを書く。<code>#</code>の見出しは文書タイトルとなる。また見出しからは目次が自動で生成される。見出し中でも注やリンクを利用できるが、目次内では除外・無効化される。</p>
+    <h3 id="強調">強調</h3>
+    <p><strong>Bold</strong>(<code>**Bold**</code>)と<em>Italic</em>(<code>__Italic__</code>)を利用できる。</p>
+    <h3 id="リンク">リンク</h3>
+    <p><a href="#リンク"><code>[text](url)</code>でリンクを貼る。</a>リンクテキストでリンクや注を使うことはできない。</p>
+    <p>リンクテキストを省略すると、URLのページの<code>&lt;title&gt;</code>要素からタイトルを抽出しリンクテキストとする。</p>
+    <p><a href="https://season1618.github.io/notex/">Page not found &middot; GitHub Pages</a></p>
+    <h3 id="注">注<sup id="cite-1"><a href="#ref-1">[1]</a></sup></h3>
+    <p><code>[^注]</code>と書くことで注を入れる。注の中で注は使えない<sup id="cite-2"><a href="#ref-2">[2]</a></sup>。注は引用で参照へのリンクを貼る<sup id="cite-3"><a href="#ref-3">[3]</a></sup>。<code>[^]</code>でそれより上にある注の引用の内まだ参照されていないものをリストする。<code>[^]</code>で回収されない注は文書の最後でまとめて回収される。</p>
+    <div class="ref">
+      <p id="ref-1"><a href="#cite-1">[1]</a> 横組の書物の場合、ページ下部に置かれるものを脚注(footnote)、本文が一区切りされる編・章・節の終わりに付けられるものを後注(endnote)と呼ぶ。</p>
+      <p id="ref-2"><a href="#cite-2">[2]</a> 注を更に補足する補注というものもあるが、一般的でないためネストはしないものとする。</p>
+      <p id="ref-3"><a href="#cite-3">[3]</a> 注は参照で引用へのリンクを貼る。</p>
+    </div>
+    <h3 id="リスト">リスト</h3>
+    <ul>
+      <li>
+        順序なしリスト: <code>- </code>
+        <ul>
+          <li>
+            項目1
+          </li>
+          <li>
+            項目2
+          </li>
+          <li>
+            項目3
+          </li>
+        </ul>
+      </li>
+      <li>
+        順序付きリスト: <code>+ </code>
+        <ol>
+          <li>
+            項目1
+          </li>
+          <li>
+            項目2
+          </li>
+          <li>
+            項目3
+          </li>
+        </ol>
+      </li>
+    </ul>
+    <h3 id="表">表</h3>
+    <pre><code class="language-plaintext">| 見出し1 | 見出し2 | 見出し3 |
+-----------------
+| aaa | bbb | ccc |
+| aaa | bbb | ccc |
+</code></pre>
+    <table>
+      <thead>
+        <tr>
+          <td> 見出し1 </td>
+          <td> 見出し2 </td>
+          <td> 見出し3 </td>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td> aaa </td>
+          <td> bbb </td>
+          <td> ccc </td>
+        </tr>
+        <tr>
+          <td> aaa </td>
+          <td> bbb </td>
+          <td> ccc </td>
+        </tr>
+      </tbody>
+    </table>
+    <h3 id="画像">画像</h3>
+    <div class="image">
+      <img src="./image.jpg">
+      <p class="caption"><code>@[caption](url)</code>とすることで画像を挿入する</p>
+    </div>
+    <h3 id="リンクカード">リンクカード</h3>
+    <p>OGP情報を取得しリンクカードを生成する。</p>
+    <pre><code class="language-plaintext">@[](url)
+</code></pre>
+    <div class="linkcard"><a class="linkcard-link" href="https://github.com/season1618/notex">
+      <div class="linkcard-text">
+        <h3 class="linkcard-title">GitHub - season1618/notex: Markup Language and Converter for HTML</h3>
+        <p class="linkcard-description">Markup Language and Converter for HTML. Contribute to season1618/notex development by creating an account on GitHub.</p>
+        <img class="linkcard-favicon" src="http://www.google.com/s2/favicons?domain=https://github.com/season1618/notex"><span  class="linkcard-sitename">GitHub</span>
+      </div>
+      <img class="linkcard-image" src="https://opengraph.githubassets.com/e5ea1fa44e059c69ea4320c057ce9fdc02f2d01b0403680b10388ad3fa915876/season1618/notex">
+    </a></div>
+    <h3 id="引用">引用</h3>
+    <blockquote>
+      <p></p>
+      <p><code>&gt;&gt;</code>と<code>&lt;&lt;</code>で囲むことで引用となる。</p>
+    </blockquote>
+    <h3 id="数式">数式</h3>
+    <p>インライン数式は<code>$ .. $</code>、数式ブロックは<code>$$ .. $$</code>。MathJaxを利用するためHTMLの<code>&lt;head&gt;</code>に</p>
+    <pre><code class="language-html">&lt;script src="https://polyfill.io/v3/polyfill.min.js?features=es6"&gt;&lt;/script&gt;
+&lt;script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"&gt;&lt;/script&gt;
+</code></pre>
+    <p>を記述。</p>
+    <p>状態を\(u\)、ハミルトニアンを\(H\)とすると、状態の時間発展は</p>
+    <p>\[
+    u(t + dt) = \exp\left(-i\frac{H}{\hbar}dt\right)u(t)
+\]</p>
+    <p>となる。</p>
+    <p>MathJaxのドキュメントは以下を参照。</p>
+    <div class="linkcard"><a class="linkcard-link" href="https://docs.mathjax.org/en/latest/">
+      <div class="linkcard-text">
+        <h3 class="linkcard-title">MathJax Documentation &mdash; MathJax 3.2 documentation</h3>
+        <img class="linkcard-favicon" src="http://www.google.com/s2/favicons?domain=https://docs.mathjax.org/en/latest/"><span  class="linkcard-sitename">https://docs.mathjax.org/en/latest/</span>
+      </div>
+    </a></div>
+    <h3 id="コード">コード</h3>
+    <p>インラインコードは<code>` .. `</code>、コードブロックは<code>``` .. ```</code>。</p>
+    <p>コードブロックにシンタックスハイライトを付けるにはHighlight.jsを利用する。HTMLの<code>&lt;head&gt;</code>に</p>
+    <pre><code class="language-html">&lt;link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"&gt;
+&lt;script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"&gt;&lt;/script&gt;
+&lt;script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"&gt;&lt;/script&gt;
+&lt;script&gt;hljs.highlightAll();&lt;/script&gt;
+</code></pre>
+    <p>を記述。</p>
+    <pre><code class="language-c">#include &lt;stdio.h&gt;
+
+int main() {
+    printf("hello, world");
+    return 0;
+}
+</code></pre>
+    <p>highlight.jsのドキュメントは以下を参照。</p>
+    <div class="linkcard"><a class="linkcard-link" href="https://highlightjs.readthedocs.io/en/latest/">
+      <div class="linkcard-text">
+        <h3 class="linkcard-title">Highlight.js Documentation &mdash; highlight.js 11.9.0 documentation</h3>
+        <img class="linkcard-favicon" src="http://www.google.com/s2/favicons?domain=https://highlightjs.readthedocs.io/en/latest/"><span  class="linkcard-sitename">https://highlightjs.readthedocs.io/en/latest/</span>
+      </div>
+    </a></div>
+    <p>サポート言語とテーマ。</p>
+    <ul>
+      <li>
+        <a href="https://github.com/highlightjs/highlight.js/blob/main/SUPPORTED_LANGUAGES.md">highlight.js/SUPPORTED_LANGUAGES.md at main · highlightjs/highlight.js · GitHub</a>
+      </li>
+      <li>
+        <a href="https://github.com/highlightjs/highlight.js/tree/main/src/styles">highlight.js/src/styles at main · highlightjs/highlight.js · GitHub</a>
+      </li>
+      <li>
+        <a href="https://cdnjs.com/libraries/highlight.js">highlight.js - Libraries - cdnjs - The #1 free and open source CDN built to make life easier for developers</a>
+      </li>
+    </ul>
+    <h2 id="形式文法">形式文法</h2>
+    <pre><code class="language-plaintext">document = block*
+
+block = header
+      | quote
+      | list
+      | table
+      | image
+      | link-card
+      | math-block
+      | code-block
+      | paragraph
+      | ref
+header = ("# " | "## " | "### " | "#### " | "##### " | "###### ") inline
+quote = &gt;&gt; inline* &lt;&lt;
+list = (("- " | "+ ") inline EOL)*
+table = ("|" ( inline "|" )* EOL)* "-"+ EOL ("|" ( inline "|" )* EOL)*
+image = @[ inline ]( url )
+link-card = @[]( url )
+math-block = $$ .. $$
+code-block = ``` .. ```
+paragraph = inline
+ref = "[^]"
+
+inline = cite*
+cite = [^ link* ]
+     | link
+link = [ emph* ]( url )
+     | emph
+emph = ** emph* **
+     | __ emph* __
+     | prim
+prim = math = $ .. $
+     | code = ` .. `
+     | text
+</code></pre>
+
+  </div>
+</body>
+</html>
