@@ -230,7 +230,7 @@ impl<'a> Parser<'a> {
         }
 
         let mut row: Vec<Inline<'a>> = Vec::new();
-        while !self.chs.is_empty() && !self.starts_with_newline_next() {
+        while !self.is_eol() {
             let data = Inline(self.parse_until_trim(Self::parse_cite, &["|"]));
             row.push(data);
         }
@@ -261,7 +261,7 @@ impl<'a> Parser<'a> {
 
     fn parse_inline(&mut self) -> Inline<'a> {
         let mut text = Vec::new();
-        while !self.chs.is_empty() && !self.starts_with_newline_next() {
+        while !self.is_eol() {
             text.push(self.parse_cite());
         }
         Inline(text)
@@ -382,16 +382,8 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn starts_with_newline_next(&mut self) -> bool {
-        if let Some(chs) = self.chs.strip_prefix("\n") {
-            self.chs = chs;
-            true
-        } else if let Some(chs) = self.chs.strip_prefix("\r\n") {
-            self.chs = chs;
-            true
-        } else {
-            false
-        }
+    fn is_eol(&mut self) -> bool {
+        self.chs.is_empty() || self.starts_with_next("\n") || self.starts_with_next("\r\n")
     }
 }
 
