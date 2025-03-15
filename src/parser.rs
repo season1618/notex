@@ -330,6 +330,11 @@ impl<'a> Parser<'a> {
         let mut chs = self.chs.chars();
         let mut start = self.chs.len();
         while !chs.as_str().is_empty() {
+            if chs.as_str().starts_with("\\") {
+                chs.next();
+                chs.next();
+                continue;
+            }
             if terms.iter().any(|&term| chs.as_str().starts_with(term)) {
                 let rest = chs.as_str();
                 start -= rest.len();
@@ -347,6 +352,11 @@ impl<'a> Parser<'a> {
         let mut start = self.chs.len();
         let mut end = self.chs.len();
         while !chs.as_str().is_empty() {
+            if chs.as_str().starts_with("\\") {
+                chs.next();
+                chs.next();
+                continue;
+            }
             if let Some(&term) = terms.iter().find(|&term| chs.as_str().starts_with(term)) {
                 let rest = chs.as_str();
                 start -= rest.len();

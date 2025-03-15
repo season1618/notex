@@ -82,13 +82,24 @@ impl<'a> std::fmt::Display for Span<'a> {
 
 impl<'a> std::fmt::Display for HtmlText<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        for c in self.0.chars() {
-            match c {
-                '<' => write!(f, "&lt;")?,
-                '>' => write!(f, "&gt;")?,
-                c => write!(f, "{c}")?,
+        let mut chs = self.0.chars();
+        while let Some(c) = chs.next() {
+            if c == '\\' {
+                if let Some(c) = chs.next() {
+                    escape(c, f)?;
+                }
+            } else {
+                escape(c, f)?;
             }
         }
         Ok(())
+    }
+}
+
+fn escape(c: char, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    match c {
+        '<' => write!(f, "&lt;"),
+        '>' => write!(f, "&gt;"),
+        c => write!(f, "{c}"),
     }
 }
