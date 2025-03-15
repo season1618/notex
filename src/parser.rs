@@ -7,9 +7,9 @@ use crate::multiset::MultiSet;
 use Block::*;
 use Span::*;
 
-pub fn parse_markdown(doc: &str) -> (String, List, Vec<Block>) {
+pub fn parse(doc: &str) -> (String, List, Vec<Block>) {
     let mut parser = Parser::new(doc);
-    parser.parse_markdown();
+    parser.parse_document();
     return (parser.title, parser.toc, parser.content);
 }
 
@@ -32,7 +32,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse_markdown(&mut self) {
+    pub fn parse_document(&mut self) {
         while !self.chs.is_empty() {
             let block = self.parse_block();
             match block {

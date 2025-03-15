@@ -515,6 +515,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "notex"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "regex",
+ "reqwest",
+ "tokio",
+]
+
+[[package]]
 name = "num-traits"
 version = "0.2.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -914,16 +924,6 @@ dependencies = [
  "fastrand",
  "rustix",
  "windows-sys 0.52.0",
-]
-
-[[package]]
-name = "thinknaut"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "regex",
- "reqwest",
- "tokio",
 ]
 
 [[package]]
