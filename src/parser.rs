@@ -16,9 +16,10 @@ pub fn parse(doc: &str) -> (String, List, Vec<Block>) {
 pub struct Parser<'a> {
     chs: &'a str,
     headers: MultiSet<String>,
+    notes: Vec<(Inline<'a>, usize)>, note_id: usize,
     title: String,
-    toc: List,
-    content: Vec<Block>,
+    toc: List<'a>,
+    content: Vec<Block<'a>>,
 }
 
 impl<'a> Parser<'a> {
@@ -26,6 +27,7 @@ impl<'a> Parser<'a> {
         Parser {
             chs: doc,
             headers: MultiSet::new(),
+            notes: Vec::new(), note_id: 0,
             title: String::new(),
             toc: List { ordered: true, items: Vec::new() },
             content: Vec::new(),
@@ -36,13 +38,16 @@ impl<'a> Parser<'a> {
         while !self.chs.is_empty() {
             let block = self.parse_block();
             match block {
-                Paragraph { spans } if spans.is_empty() => {},
+                Paragraph { text } if text.0.is_empty() => {},
                 _ => { self.content.push(block); },
             }
         }
+
+        let refs = self.catch_refs();
+        self.content.push(refs);
     }
 
-    fn parse_block(&mut self) -> Block {
+    fn parse_block(&mut self) -> Block<'a> {
         // header
         if self.starts_with_next("# ") {
             return self.parse_header(1);
@@ -64,23 +69,23 @@ impl<'a> Parser<'a> {
         }
 
         // blockquote
-        if self.chs.starts_with("> ") {
+        if self.starts_with_next(">>") {
             return self.parse_blockquote();
         }
 
         // list
-        if self.chs.starts_with("+ ") || self.chs.starts_with("- ") || self.chs.starts_with("* ") || self.starts_with_num() {
-            return ListElement(self.parse_list(0));
+        if self.chs.starts_with("+ ") || self.chs.starts_with("- ") {
+            return ListBlock(self.parse_list(0));
         }
 
-        // image
-        if self.starts_with_next("![](") {
-            return self.parse_image();
+        // embed
+        if self.starts_with_next("@[") {
+            return self.parse_embed();
         }
 
-        // link card
-        if self.starts_with_next("?[](") {
-            return self.parse_link_card();
+        // table
+        if self.chs.starts_with("|") {
+            return self.parse_table();
         }
 
         // math block
@@ -93,88 +98,93 @@ impl<'a> Parser<'a> {
             return self.parse_code_block();
         }
 
-        // table
-        if self.chs.starts_with("|") {
-            return self.parse_table();
+        // reference
+        if self.starts_with_next("[^]") {
+            return self.catch_refs();
         }
 
         // paragraph
-        return self.parse_paragraph();
+        self.parse_paragraph()
     }
 
-    fn parse_header(&mut self, level: u32) -> Block {
-        let spans = self.parse_spans();
-        let mut header = String::new();
-        for span in &spans {
+    fn parse_header(&mut self, level: u32) -> Block<'a> {
+        let header = self.parse_inline();
+
+        let mut header_toc = Vec::new();
+        for span in &header.0 {
             match span {
-                Link { text, .. } => { header.push_str(text); },
-                Emphasis { text, .. } => { header.push_str(text); },
-                Math { math } => { header.push_str(&format!("\\({}\\)", math)) },
-                Code { code } => { header.push_str(code); },
-                Text { text } => { header.push_str(text); },
+                Cite { .. } => {},
+                Link { text, .. } => {
+                    for span in &text.0 {
+                        header_toc.push(span.clone());
+                    }
+                },
+                _ => header_toc.push(span.clone()),
+            }
+        }
+
+        let mut header_id = String::new();
+        for span in &header_toc {
+            match span {
+                Math { math } => header_id.push_str(math),
+                Code { code } => header_id.push_str(code),
+                Text { text } => header_id.push_str(text),
                 _ => {},
             }
         }
 
-        let count = self.headers.insert(header.clone());
-        let id = if count == 0 { format!("{}", &header) } else { format!("{}-{}", &header, count) };
-        let href = format!("#{}", &id);
-
         // modify title or table of contents
         if level == 1 {
-            self.title = header.clone();
+            self.title = header_id.clone();
         } else {
+            let count = self.headers.insert(header_id.clone());
+            if count > 0 {
+                header_id = format!("{}-{}", &header_id, count);
+            }
+
             let mut cur = &mut self.toc;
             for _ in 2..level {
                 cur = &mut cur.items.last_mut().unwrap().list;
             }
             cur.items.push(ListItem {
-                spans: vec![ Link { text: header.clone(), url: href.clone() }],
+                item: Inline(vec![ Link { text: Inline(header_toc), url: format!("#{}", &header_id).into() } ]),
                 list: List { ordered: true, items: Vec::new() },
             });
         }
-        Header { spans, level, id }
+        Header { header, level, id: header_id }
     }
 
-    fn parse_blockquote(&mut self) -> Block {
+    fn parse_blockquote(&mut self) -> Block<'a> {
         let mut lines = Vec::new();
-        while self.starts_with_next("> ") {
-            lines.push(self.parse_spans());
+        while !self.starts_with_next("<<") {
+            lines.push(self.parse_inline());
         }
         Blockquote { lines }
     }
 
-    fn parse_list(&mut self, min_indent: usize) -> List {
+    fn parse_list(&mut self, min_indent: usize) -> List<'a> {
         let mut ordered = false;
         let mut items = Vec::new();
         while !self.chs.is_empty() {
-            let mut indent = 0;
-            let mut chs = self.chs;
-            while let Some((c, rest)) = uncons(chs) {
-                if c == ' ' {
-                    chs = rest;
-                    indent += 1;
-                } else {
-                    break;
-                }
-            }
+            let chs = self.chs.trim_start_matches(' ');
+            let indent = self.chs.len() - chs.len();
 
             if min_indent <= indent {
                 self.chs = chs;
 
-                if self.starts_with_next("+ ") || self.starts_with_next("- ") || self.starts_with_next("* ") {
+                if self.starts_with_next("- ") {
                     ordered = false;
                     items.push(ListItem {
-                        spans: self.parse_spans(),
+                        item: self.parse_inline(),
                         list: self.parse_list(indent + 1),
                     });
                     continue;
                 }
 
-                if self.starts_with_num_next() {
+                if self.starts_with_next("+ ") {
                     ordered = true;
                     items.push(ListItem {
-                        spans: self.parse_spans(),
+                        item: self.parse_inline(),
                         list: self.parse_list(indent + 1),
                     });
                     continue;
@@ -185,44 +195,20 @@ impl<'a> Parser<'a> {
         List { ordered, items }
     }
 
-    fn parse_image(&mut self) -> Block {
-        let mut url = String::new();
-        while let Some(c) = self.next_char_until(")") {
-            url.push(c);
+    fn parse_embed(&mut self) -> Block<'a> {
+        let text = self.parse_until_trim(Self::parse_cite, &["]("]);
+        let url = self.read_until_trim(&[")"]);
+
+        if url.ends_with(".png") || url.ends_with(".jpg") {
+            let title = Inline(text);
+            Image { title, url }
+        } else {
+            let (title, image, description, site_name) = get_ogp_info(&url);
+            LinkCard { title, image, url, description, site_name }
         }
-        Image { url }
     }
 
-    fn parse_link_card(&mut self) -> Block {
-        let mut url = String::new();
-        while let Some(c) = self.next_char_until(")") {
-            url.push(c);
-        }
-        let (title, image, description, site_name) = get_ogp_info(&url);
-        LinkCard { title, image, url, description, site_name }
-    }
-
-    fn parse_math_block(&mut self) -> Block {
-        let mut math = String::new();
-        while let Some(c) = self.next_char_until("$$") {
-            math.push_str(&self.escape(c));
-        }
-        MathBlock { math }
-    }
-
-    fn parse_code_block(&mut self) -> Block {
-        let mut lang = String::new();
-        while let Some(c) = self.next_char_until_newline() {
-            lang.push(c);
-        }
-        let mut code = String::new();
-        while let Some(c) = self.next_char_until("```") {
-            code.push_str(&self.escape(c));
-        }
-        CodeBlock { lang, code }
-    }
-
-    fn parse_table(&mut self) -> Block {
+    fn parse_table(&mut self) -> Block<'a> {
         let mut head = Vec::new();
         let mut body = Vec::new();
         while let Some(row) = self.parse_table_row() {
@@ -234,235 +220,157 @@ impl<'a> Parser<'a> {
         Table { head, body }
     }
 
-    fn parse_table_row(&mut self) -> Option<Vec<String>> {
+    fn parse_table_row(&mut self) -> Option<Vec<Inline<'a>>> {
+        if self.starts_with_next("-") {
+            self.read_until_trim(&["\n", "\r\n"]);
+            return None;
+        }
         if !self.starts_with_next("|") {
             return None;
         }
 
-        let mut row: Vec<String> = Vec::new();
-        while !self.chs.is_empty() && !self.starts_with_newline_next() {
-            let mut data = String::new();
-            while let Some(c) = self.next_char_except("|\r\n") {
-                data.push_str(&self.escape(c));
-            }
+        let mut row: Vec<Inline<'a>> = Vec::new();
+        while !self.is_eol() {
+            let data = Inline(self.parse_until_trim(Self::parse_cite, &["|"]));
             row.push(data);
-            self.starts_with_next("|");
-        }
-        if row.iter().all(|s| s.chars().all(|c| c == '-' || c == ' ')) {
-            return None;
         }
         Some(row)
     }
 
-    fn parse_paragraph(&mut self) -> Block {
-        Paragraph { spans: self.parse_spans() }
+    fn parse_math_block(&mut self) -> Block<'a> {
+        let math = self.read_until_trim(&["$$"]);
+        MathBlock { math }
     }
 
-    fn parse_spans(&mut self) -> Vec<Span> {
-        let mut spans = Vec::new();
-        while !self.chs.is_empty() && !self.starts_with_newline_next() {
-            // link
-            if self.starts_with_next("[") {
-                spans.push(self.parse_link());
-                continue;
-            }
-
-            // strong
-            if self.starts_with_next("**") {
-                spans.push(self.parse_strong('*'));
-                continue;
-            }
-            if self.starts_with_next("__") {
-                spans.push(self.parse_strong('_'));
-                continue;
-            }
-
-            // emphasis
-            if self.starts_with_next("*") {
-                spans.push(self.parse_emphasis('*'));
-                continue;
-            }
-            if self.starts_with_next("_") {
-                spans.push(self.parse_emphasis('_'));
-                continue;
-            }
-
-            // math
-            if self.starts_with_next("$") {
-                spans.push(self.parse_math());
-                continue;
-            }
-
-            // code
-            if self.starts_with_next("`") {
-                spans.push(self.parse_code());
-                continue;
-            }
-
-            // text
-            spans.push(self.parse_text());
-        }
-        spans
+    fn parse_code_block(&mut self) -> Block<'a> {
+        let lang = self.read_until_trim(&["\n", "\r\n"]);
+        let code = self.read_until_trim(&["```"]);
+        CodeBlock { lang, code }
     }
 
-    fn parse_link(&mut self) -> Span {
-        let mut text = String::new();
-        let mut url = String::new();
-        let mut chs = self.chs;
-
-        loop {
-            match uncons_except_newline(chs) {
-                Some((']', rest)) => { chs = rest; break; },
-                Some((c, rest)) => { chs = rest; text.push_str(&self.escape(c)); },
-                None => { return Text { text: String::from("[") }; },
-            }
-        }
-
-        match uncons_except_newline(chs) {
-            Some(('(', rest)) => { chs = rest; },
-            _ => { return Text { text: String::from("[") }; },
-        }
-
-        loop {
-            match uncons_except_newline(chs) {
-                Some((')', rest)) => { chs = rest; break; },
-                Some((c, rest)) => { chs = rest; url.push(c); },
-                None => { return Text { text: String::from("[") }; },
-            }
-        }
-
-        self.chs = chs;
-
-        if text.is_empty() {
-            text = get_title(&url);
-        }
-
-        Link { text, url }
+    fn parse_paragraph(&mut self) -> Block<'a> {
+        Paragraph { text: self.parse_inline() }
     }
 
-    fn parse_strong(&mut self, d: char) -> Span {
-        let mut text = String::new();
-        let mut chs = self.chs;
-        while let Some((c, rest)) = uncons_except_newline(chs) {
-            if c == d {
-                self.chs = rest;
-                if self.starts_with_next(&d.to_string()) {
-                    return Strong { text };
-                } else {
-                    return Emphasis { text };
-                }
-            }
-            chs = rest;
-            text.push_str(&self.escape(c));
-        }
-        Text { text: format!("{0}{0}", d) }
+    fn catch_refs(&mut self) -> Block<'a> {
+        let mut refs = Vec::new();
+        refs.append(&mut self.notes);
+
+        Ref(refs)
     }
 
-    fn parse_emphasis(&mut self, d: char) -> Span {
-        let mut text = String::new();
-        let mut chs = self.chs;
-        while let Some((c, rest)) = uncons_except_newline(chs) {
-            if c == d {
-                self.chs = rest;
-                return Emphasis { text };
-            }
-            chs = rest;
-            text.push_str(&self.escape(c));
+    fn parse_inline(&mut self) -> Inline<'a> {
+        let mut text = Vec::new();
+        while !self.is_eol() {
+            text.push(self.parse_cite());
         }
-        Text { text: d.to_string() }
+        Inline(text)
     }
 
-    fn parse_math(&mut self) -> Span {
-        let mut math = String::new();
-        let mut chs = self.chs;
-        while let Some((c, rest)) = uncons_except_newline(chs) {
-            if c == '$' {
-                self.chs = rest;
-                return Math { math };
-            }
-            chs = rest;
-            math.push_str(&self.escape(c));
+    fn parse_cite(&mut self) -> Span<'a> {
+        if self.starts_with_next("[^") {
+            self.note_id += 1;
+            let note = Inline(self.parse_until_trim(Self::parse_link, &["]"]));
+            let id = self.note_id;
+
+            self.notes.push((note, id));
+
+            Cite { id }
+        } else {
+            self.parse_link()
         }
-        Text { text: String::from("$") }
     }
 
-    fn parse_code(&mut self) -> Span {
-        let mut code = String::new();
-        let mut chs = self.chs;
-        while let Some((c, rest)) = uncons_except_newline(chs) {
-            if c == '`' {
-                self.chs = rest;
-                return Code { code };
-            }
-            chs = rest;
-            code.push_str(&self.escape(c));
+    fn parse_link(&mut self) -> Span<'a> {
+        if self.starts_with_next("[") { // link
+            let text = self.parse_until_trim(Self::parse_emph, &["]("]);
+            let url: std::borrow::Cow<'a, str> = self.read_until_trim(&[")"]).into();
+
+            let text = if text.is_empty() {
+                Inline(vec![ Text { text: get_title(url.as_ref()).into() } ])
+            } else { Inline(text) };
+
+            Link { text, url }
+        } else {
+            self.parse_emph()
         }
-        Text { text: String::from("`") }
     }
 
-    fn parse_text(&mut self) -> Span {
-        let mut text = String::new();
-        while let Some(c) = self.next_char_except("[*_$`\r\n") {
-            text.push_str(&self.escape(c));
+    fn parse_emph(&mut self) -> Span<'a> {
+        if self.starts_with_next("**") {
+            let text = Inline(self.parse_until_trim(Self::parse_emph, &["**"]));
+            Bold { text }
+        } else if self.starts_with_next("__") {
+            let text = Inline(self.parse_until_trim(Self::parse_emph, &["__"]));
+            Ital { text }
+        } else {
+            self.parse_primary()
         }
+    }
+
+    fn parse_primary(&mut self) -> Span<'a> {
+        // math
+        if self.starts_with_next("$") {
+            let math = self.read_until_trim(&["$"]);
+            return Math { math };
+        }
+
+        // code
+        if self.starts_with_next("`") {
+            let code = self.read_until_trim(&["`"]);
+            return Code { code };
+        }
+
+        // text
+        let text = self.read_until(&["|", "**", "__", "[", "]", "$", "`", "\n", "\r\n"]).into();
         Text { text }
     }
 
-    fn next_char_until(&mut self, until: &str) -> Option<char> {
-        if self.chs.starts_with(until) {
-            let len = until.chars().count();
-            self.chs = &self.chs[len..];
-            return None;
-        }
-        if let Some(c) = self.chs.chars().nth(0) {
-            let i = if let Some((i, _)) = self.chs.char_indices().nth(1) { i } else { self.chs.len() };
-            self.chs = &self.chs[i..];
-            return Some(c);
-        }
-        None
-    }
-
-    fn next_char_until_newline(&mut self) -> Option<char> {
-        if self.chs.starts_with("\n") {
-            self.chs = &self.chs[1..];
-            return None;
-        }
-        if self.chs.starts_with("\r\n") {
-            self.chs = &self.chs[2..];
-            return None;
-        }
-        if let Some(c) = self.chs.chars().nth(0) {
-            let i = if let Some((i, _)) = self.chs.char_indices().nth(1) { i } else { self.chs.len() };
-            self.chs = &self.chs[i..];
-            return Some(c);
-        }
-        None
-    }
-
-    fn next_char_except(&mut self, except: &str) -> Option<char> {
-        if let Some(c) = self.chs.chars().nth(0) {
-            if !except.contains(c) {
-                let i = if let Some((i, _)) = self.chs.char_indices().nth(1) { i } else { self.chs.len() };
-                self.chs = &self.chs[i..];
-                return Some(c);
+    fn read_until(&mut self, terms: &[&str]) -> &'a str {
+        let mut chs = self.chs.chars();
+        let mut start = self.chs.len();
+        while !chs.as_str().is_empty() {
+            if terms.iter().any(|&term| chs.as_str().starts_with(term)) {
+                let rest = chs.as_str();
+                start -= rest.len();
+                break;
             }
+            chs.next();
         }
-        None
+        let text = &self.chs[..start];
+        self.chs = &self.chs[start..];
+        text
     }
 
-    fn starts_with_num(&self) -> bool {
-        let chs = self.chs.trim_start_matches(|c: char| c.is_ascii_digit());
-        chs.strip_prefix(". ").is_some()
+    fn read_until_trim(&mut self, terms: &[&str]) -> &'a str {
+        let mut chs = self.chs.chars();
+        let mut start = self.chs.len();
+        let mut end = self.chs.len();
+        while !chs.as_str().is_empty() {
+            if let Some(&term) = terms.iter().find(|&term| chs.as_str().starts_with(term)) {
+                let rest = chs.as_str();
+                start -= rest.len();
+                let rest = rest.strip_prefix(term).unwrap();
+                end -= rest.len();
+                break;
+            }
+            chs.next();
+        }
+        let text = &self.chs[..start];
+        self.chs = &self.chs[end..];
+        text
     }
 
-    fn starts_with_num_next(&mut self) -> bool {
-        let chs = self.chs.trim_start_matches(|c: char| c.is_ascii_digit());
-        if let Some(chs) = chs.strip_prefix(". ") {
-            self.chs = chs;
-            true
-        } else {
-            false
+    fn parse_until_trim<T>(&mut self, mut parser: impl FnMut(&mut Self) -> T, terms: &[&str]) -> Vec<T> {
+        let mut res = Vec::new();
+        loop {
+            if let Some(term) = terms.iter().find(|&term| self.chs.starts_with(term)) {
+                self.chs = self.chs.strip_prefix(term).unwrap();
+                break;
+            }
+            res.push(parser(self));
         }
+        res
     }
 
     fn starts_with_next(&mut self, prefix: &str) -> bool {
@@ -474,51 +382,13 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn starts_with_newline_next(&mut self) -> bool {
-        if let Some(chs) = self.chs.strip_prefix("\n") {
-            self.chs = chs;
-            true
-        } else if let Some(chs) = self.chs.strip_prefix("\r\n") {
-            self.chs = chs;
-            true
-        } else {
-            false
-        }
+    fn is_eol(&mut self) -> bool {
+        self.chs.is_empty() || self.starts_with_next("\n") || self.starts_with_next("\r\n")
     }
-
-    fn escape(&self, c: char) -> String {
-        match c {
-            '<' => String::from("&lt;"),
-            '>' => String::from("&gt;"),
-            _ => c.to_string(),
-        }
-    }
-}
-
-fn uncons<'a>(chs: &'a str) -> Option<(char, &'a str)> {
-    if let Some(c) = chs.chars().nth(0) {
-        let i = if let Some((i, _)) = chs.char_indices().nth(1) { i } else { chs.len() };
-        return Some((c, &chs[i..]));
-    }
-    None
-}
-
-fn uncons_except<'a>(chs: &'a str, except: &str) -> Option<(char, &'a str)> {
-    if let Some(c) = chs.chars().nth(0) {
-        if !except.contains(c) {
-            let i = if let Some((i, _)) = chs.char_indices().nth(1) { i } else { chs.len() };
-            return Some((c, &chs[i..]));
-        }
-    }
-    None
-}
-
-fn uncons_except_newline<'a>(chs: &'a str) -> Option<(char, &'a str)> {
-    uncons_except(chs, "\r\n")
 }
 
 #[tokio::main]
-async fn get_title(url: &String) -> String {
+async fn get_title(url: &str) -> String {
     let client = reqwest::Client::new();
     let Ok(res) = client.get(url).header(header::ACCEPT, header::HeaderValue::from_str("text/html").unwrap()).send().await else {
         return String::new();
@@ -534,7 +404,7 @@ async fn get_title(url: &String) -> String {
 }
 
 #[tokio::main]
-async fn get_ogp_info(url: &String) -> (String, Option<String>, Option<String>, Option<String>) {
+async fn get_ogp_info(url: &str) -> (String, Option<String>, Option<String>, Option<String>) {
     let mut title = String::new();
     let mut image = None;
     let mut description = None;
