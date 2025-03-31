@@ -26,7 +26,7 @@ impl<'a> CodeGen<'a> {
         for chunk in template {
             match chunk {
                 FileName => write!(self.dest, "{file}")?,
-                Title => write!(self.dest, "{}", title)?,
+                Title => write!(self.dest, "{title}")?,
                 Year   => write!(self.dest, "{:04}", datetime.year())?,
                 Month  => write!(self.dest, "{:02}", datetime.month())?,
                 Day    => write!(self.dest, "{:02}", datetime.day())?,
@@ -35,7 +35,7 @@ impl<'a> CodeGen<'a> {
                 Second => write!(self.dest, "{:02}", datetime.second())?,
                 Toc(indent) => self.gen_toc(toc, *indent)?,
                 Content(indent) => self.gen_content(content, *indent)?,
-                Str(text) => write!(self.dest, "{}", text)?,
+                Str(text) => write!(self.dest, "{text}")?,
             }
         }
         Ok(())
