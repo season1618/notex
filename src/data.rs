@@ -47,6 +47,7 @@ pub struct MathText<'a>(pub &'a str);
 
 #[derive(Debug)]
 pub enum Elem {
+    FileName,
     Title,
     Year,
     Month,

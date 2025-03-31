@@ -7,9 +7,9 @@ use crate::data::*;
 use Block::*;
 use Elem::*;
 
-pub fn gen_html(dest: &mut File, title: &String, toc: &List, content: &Vec<Block>, template: &Vec<Elem>) -> Result<(), io::Error> {
+pub fn gen_html(dest: &mut File, file: &str, title: &str, toc: &List, content: &Vec<Block>, template: &Vec<Elem>) -> Result<(), io::Error> {
     let mut codegen = CodeGen::new(dest);
-    codegen.gen_html(title, toc, content, template)
+    codegen.gen_html(file, title, toc, content, template)
 }
 
 struct CodeGen<'a> {
@@ -21,10 +21,11 @@ impl<'a> CodeGen<'a> {
         CodeGen { dest }
     }
 
-    fn gen_html(&mut self, title: &String, toc: &List, content: &Vec<Block>, template: &Vec<Elem>) -> Result<(), io::Error> {
+    fn gen_html(&mut self, file: &str, title: &str, toc: &List, content: &Vec<Block>, template: &Vec<Elem>) -> Result<(), io::Error> {
         let datetime = Local::now();
         for chunk in template {
             match chunk {
+                FileName => write!(self.dest, "{file}")?,
                 Title => write!(self.dest, "{}", title)?,
                 Year   => write!(self.dest, "{:04}", datetime.year())?,
                 Month  => write!(self.dest, "{:02}", datetime.month())?,

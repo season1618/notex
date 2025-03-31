@@ -6,6 +6,7 @@ pub mod codegen;
 
 use std::env;
 use std::fs::{self, File};
+use std::path::Path;
 
 use crate::parser::parse;
 use crate::template::read_template;
@@ -27,6 +28,7 @@ fn main(){
         Ok(res) => res,
         Err(err) => { println!("Syntax Error: {err}"); return; },
     };
+    let file = Path::new(dest_path).file_stem().unwrap().to_str().unwrap();
 
     let Ok(temp) = read_template(temp_path) else {
         println!("could not open or read the template file.");
@@ -38,7 +40,7 @@ fn main(){
         return;
     };
     
-    let Ok(_) = gen_html(&mut dest, &title, &toc, &content, &temp) else {
+    let Ok(_) = gen_html(&mut dest, file, &title, &toc, &content, &temp) else {
         println!("could not write to the destination file.");
         return;
     };
