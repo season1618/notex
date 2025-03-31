@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 use Span::*;
+use SyntaxError::*;
 
 #[derive(Debug)]
 pub enum Block<'a> {
@@ -58,6 +59,10 @@ pub enum Elem {
     Str(String),
 }
 
+pub enum SyntaxError {
+    Expect(&'static [&'static str]),
+}
+
 impl<'a> std::fmt::Display for Inline<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         for item in &self.0 {
@@ -103,6 +108,14 @@ impl<'a> std::fmt::Display for MathText<'a> {
             escape(c, f)?;
         }
         Ok(())
+    }
+}
+
+impl std::fmt::Debug for SyntaxError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Expect(terms) => write!(f, "{:?} is expected", terms),
+        }
     }
 }
 

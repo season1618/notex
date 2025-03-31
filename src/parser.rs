@@ -6,6 +6,7 @@ use crate::data::*;
 use crate::multiset::MultiSet;
 use Block::*;
 use Span::*;
+use SyntaxError::*;
 
 pub fn parse(doc: &str) -> (String, List, Vec<Block>) {
     let mut parser = Parser::new(doc);
@@ -197,7 +198,7 @@ impl<'a> Parser<'a> {
 
     fn parse_embed(&mut self) -> Block<'a> {
         let text = self.parse_until_trim(Self::parse_cite, &["]("]);
-        let url = self.read_until_trim(&[")"]);
+        let url = self.read_until_trim(&[")"]).unwrap();
 
         if url.ends_with(".png") || url.ends_with(".jpg") {
             let title = Inline(text);
@@ -222,7 +223,7 @@ impl<'a> Parser<'a> {
 
     fn parse_table_row(&mut self) -> Option<Vec<Inline<'a>>> {
         if self.starts_with_next("-") {
-            self.read_until_trim(&["\n", "\r\n"]);
+            self.read_until_trim(&["\n", "\r\n"]).unwrap();
             return None;
         }
         if !self.starts_with_next("|") {
@@ -238,13 +239,13 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_math_block(&mut self) -> Block<'a> {
-        let math = self.read_until_trim(&["$$"]);
+        let math = self.read_until_trim(&["$$"]).unwrap();
         MathBlock { math }
     }
 
     fn parse_code_block(&mut self) -> Block<'a> {
-        let lang = self.read_until_trim(&["\n", "\r\n"]);
-        let code = self.read_until_trim(&["```"]);
+        let lang = self.read_until_trim(&["\n", "\r\n"]).unwrap();
+        let code = self.read_until_trim(&["```"]).unwrap();
         CodeBlock { lang, code }
     }
 
@@ -284,7 +285,7 @@ impl<'a> Parser<'a> {
     fn parse_link(&mut self) -> Span<'a> {
         if self.starts_with_next("[") { // link
             let text = self.parse_until_trim(Self::parse_emph, &["]("]);
-            let url: std::borrow::Cow<'a, str> = self.read_until_trim(&[")"]).into();
+            let url: std::borrow::Cow<'a, str> = self.read_until_trim(&[")"]).unwrap().into();
 
             let text = if text.is_empty() {
                 Inline(vec![ Text { text: get_title(url.as_ref()).into() } ])
@@ -304,26 +305,26 @@ impl<'a> Parser<'a> {
             let text = Inline(self.parse_until_trim(Self::parse_emph, &["__"]));
             Ital { text }
         } else {
-            self.parse_primary()
+            self.parse_primary().unwrap()
         }
     }
 
-    fn parse_primary(&mut self) -> Span<'a> {
+    fn parse_primary(&mut self) -> Result<Span<'a>, SyntaxError> {
         // math
         if self.starts_with_next("$") {
-            let math = self.read_until_trim(&["$"]);
-            return Math { math };
+            let math = self.read_until_trim(&["$"])?;
+            return Ok(Math { math });
         }
 
         // code
         if self.starts_with_next("`") {
-            let code = self.read_until_trim(&["`"]);
-            return Code { code };
+            let code = self.read_until_trim(&["`"])?;
+            return Ok(Code { code });
         }
 
         // text
         let text = self.read_until(&["|", "**", "__", "[", "]", "$", "`", "\n", "\r\n"]).into();
-        Text { text }
+        Ok(Text { text })
     }
 
     fn read_until(&mut self, terms: &[&str]) -> &'a str {
@@ -347,7 +348,7 @@ impl<'a> Parser<'a> {
         text
     }
 
-    fn read_until_trim(&mut self, terms: &[&str]) -> &'a str {
+    fn read_until_trim(&mut self, terms: &'static [&str]) -> Result<&'a str, SyntaxError> {
         let mut chs = self.chs.chars();
         let mut start = self.chs.len();
         let mut end = self.chs.len();
@@ -362,13 +363,15 @@ impl<'a> Parser<'a> {
                 start -= rest.len();
                 let rest = rest.strip_prefix(term).unwrap();
                 end -= rest.len();
-                break;
+
+                let text = &self.chs[..start];
+                self.chs = &self.chs[end..];
+                return Ok(text);
             }
             chs.next();
         }
-        let text = &self.chs[..start];
-        self.chs = &self.chs[end..];
-        text
+        
+        Err(Expect(terms))
     }
 
     fn parse_until_trim<T>(&mut self, mut parser: impl FnMut(&mut Self) -> T, terms: &[&str]) -> Vec<T> {
