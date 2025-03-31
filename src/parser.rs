@@ -81,12 +81,12 @@ impl<'a> Parser<'a> {
 
         // embed
         if self.starts_with_next("@[") {
-            return self.parse_embed();
+            return self.parse_embed().unwrap();
         }
 
         // table
         if self.chs.starts_with("|") {
-            return self.parse_table();
+            return self.parse_table().unwrap();
         }
 
         // math block
@@ -196,46 +196,46 @@ impl<'a> Parser<'a> {
         List { ordered, items }
     }
 
-    fn parse_embed(&mut self) -> Block<'a> {
-        let text = self.parse_until_trim(Self::parse_cite, &["]("]);
-        let url = self.read_until_trim(&[")"]).unwrap();
+    fn parse_embed(&mut self) -> Result<Block<'a>, SyntaxError> {
+        let text = self.parse_until_trim(Self::parse_cite, &["]("])?;
+        let url = self.read_until_trim(&[")"])?;
 
         if url.ends_with(".png") || url.ends_with(".jpg") {
             let title = Inline(text);
-            Image { title, url }
+            Ok(Image { title, url })
         } else {
             let (title, image, description, site_name) = get_ogp_info(&url);
-            LinkCard { title, image, url, description, site_name }
+            Ok(LinkCard { title, image, url, description, site_name })
         }
     }
 
-    fn parse_table(&mut self) -> Block<'a> {
+    fn parse_table(&mut self) -> Result<Block<'a>, SyntaxError> {
         let mut head = Vec::new();
         let mut body = Vec::new();
-        while let Some(row) = self.parse_table_row() {
+        while let Some(row) = self.parse_table_row()? {
             head.push(row);
         }
-        while let Some(row) = self.parse_table_row() {
+        while let Some(row) = self.parse_table_row()? {
             body.push(row);
         }
-        Table { head, body }
+        Ok(Table { head, body })
     }
 
-    fn parse_table_row(&mut self) -> Option<Vec<Inline<'a>>> {
+    fn parse_table_row(&mut self) -> Result<Option<Vec<Inline<'a>>>, SyntaxError> {
         if self.starts_with_next("-") {
             self.read_until_trim(&["\n", "\r\n"]).unwrap();
-            return None;
+            return Ok(None);
         }
         if !self.starts_with_next("|") {
-            return None;
+            return Ok(None);
         }
 
         let mut row: Vec<Inline<'a>> = Vec::new();
         while !self.is_eol() {
-            let data = Inline(self.parse_until_trim(Self::parse_cite, &["|"]));
+            let data = Inline(self.parse_until_trim(Self::parse_cite, &["|"])?);
             row.push(data);
         }
-        Some(row)
+        Ok(Some(row))
     }
 
     fn parse_math_block(&mut self) -> Block<'a> {
@@ -263,49 +263,49 @@ impl<'a> Parser<'a> {
     fn parse_inline(&mut self) -> Inline<'a> {
         let mut text = Vec::new();
         while !self.is_eol() {
-            text.push(self.parse_cite());
+            text.push(self.parse_cite().unwrap());
         }
         Inline(text)
     }
 
-    fn parse_cite(&mut self) -> Span<'a> {
+    fn parse_cite(&mut self) -> Result<Span<'a>, SyntaxError> {
         if self.starts_with_next("[^") {
             self.note_id += 1;
-            let note = Inline(self.parse_until_trim(Self::parse_link, &["]"]));
+            let note = Inline(self.parse_until_trim(Self::parse_link, &["]"])?);
             let id = self.note_id;
 
             self.notes.push((note, id));
 
-            Cite { id }
+            Ok(Cite { id })
         } else {
             self.parse_link()
         }
     }
 
-    fn parse_link(&mut self) -> Span<'a> {
+    fn parse_link(&mut self) -> Result<Span<'a>, SyntaxError> {
         if self.starts_with_next("[") { // link
-            let text = self.parse_until_trim(Self::parse_emph, &["]("]);
-            let url: std::borrow::Cow<'a, str> = self.read_until_trim(&[")"]).unwrap().into();
+            let text = self.parse_until_trim(Self::parse_emph, &["]("])?;
+            let url: std::borrow::Cow<'a, str> = self.read_until_trim(&[")"])?.into();
 
             let text = if text.is_empty() {
                 Inline(vec![ Text { text: get_title(url.as_ref()).into() } ])
             } else { Inline(text) };
 
-            Link { text, url }
+            Ok(Link { text, url })
         } else {
             self.parse_emph()
         }
     }
 
-    fn parse_emph(&mut self) -> Span<'a> {
+    fn parse_emph(&mut self) -> Result<Span<'a>, SyntaxError> {
         if self.starts_with_next("**") {
-            let text = Inline(self.parse_until_trim(Self::parse_emph, &["**"]));
-            Bold { text }
+            let text = Inline(self.parse_until_trim(Self::parse_emph, &["**"])?);
+            Ok(Bold { text })
         } else if self.starts_with_next("__") {
-            let text = Inline(self.parse_until_trim(Self::parse_emph, &["__"]));
-            Ital { text }
+            let text = Inline(self.parse_until_trim(Self::parse_emph, &["__"])?);
+            Ok(Ital { text })
         } else {
-            self.parse_primary().unwrap()
+            self.parse_primary()
         }
     }
 
@@ -374,17 +374,17 @@ impl<'a> Parser<'a> {
         Err(Expect(terms))
     }
 
-    fn parse_until_trim<T>(&mut self, mut parser: impl FnMut(&mut Self) -> T, terms: &[&str]) -> Vec<T> {
+    fn parse_until_trim<T>(&mut self, mut parser: impl FnMut(&mut Self) -> Result<T, SyntaxError>, terms: &'static [&str]) -> Result<Vec<T>, SyntaxError> {
         let mut res = Vec::new();
         while !self.chs.is_empty() {
             if let Some(term) = terms.iter().find(|&term| self.chs.starts_with(term)) {
                 self.chs = self.chs.strip_prefix(term).unwrap();
-                return res;
+                return Ok(res);
             }
-            res.push(parser(self));
+            res.push(parser(self)?);
         }
 
-        panic!("{:?} is expected", terms)
+        Err(Expect(terms))
     }
 
     fn starts_with_next(&mut self, prefix: &str) -> bool {
