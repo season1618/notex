@@ -376,14 +376,15 @@ impl<'a> Parser<'a> {
 
     fn parse_until_trim<T>(&mut self, mut parser: impl FnMut(&mut Self) -> T, terms: &[&str]) -> Vec<T> {
         let mut res = Vec::new();
-        loop {
+        while !self.chs.is_empty() {
             if let Some(term) = terms.iter().find(|&term| self.chs.starts_with(term)) {
                 self.chs = self.chs.strip_prefix(term).unwrap();
-                break;
+                return res;
             }
             res.push(parser(self));
         }
-        res
+
+        panic!("{:?} is expected", terms)
     }
 
     fn starts_with_next(&mut self, prefix: &str) -> bool {
