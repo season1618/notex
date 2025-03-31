@@ -24,7 +24,7 @@ fn main(){
     };
 
     let (title, toc, content) = match parse(&doc) {
-        Ok((title, toc, content)) => (title, toc, content),
+        Ok(res) => res,
         Err(err) => { println!("Syntax Error: {err}"); return; },
     };
 
