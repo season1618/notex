@@ -8,10 +8,10 @@ use Block::*;
 use Span::*;
 use SyntaxError::*;
 
-pub fn parse(doc: &str) -> (String, List, Vec<Block>) {
+pub fn parse(doc: &str) -> Result<(String, List, Vec<Block>), SyntaxError> {
     let mut parser = Parser::new(doc);
-    parser.parse_document();
-    return (parser.title, parser.toc, parser.content);
+    parser.parse_document()?;
+    return Ok((parser.title, parser.toc, parser.content));
 }
 
 pub struct Parser<'a> {
@@ -35,9 +35,9 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse_document(&mut self) {
+    pub fn parse_document(&mut self) -> Result<(), SyntaxError> {
         while !self.chs.is_empty() {
-            let block = self.parse_block();
+            let block = self.parse_block()?;
             match block {
                 Paragraph { text } if text.0.is_empty() => {},
                 _ => { self.content.push(block); },
@@ -46,9 +46,11 @@ impl<'a> Parser<'a> {
 
         let refs = self.catch_refs();
         self.content.push(refs);
+
+        Ok(())
     }
 
-    fn parse_block(&mut self) -> Block<'a> {
+    fn parse_block(&mut self) -> Result<Block<'a>, SyntaxError> {
         // header
         if self.starts_with_next("# ") {
             return self.parse_header(1);
@@ -76,17 +78,17 @@ impl<'a> Parser<'a> {
 
         // list
         if self.chs.starts_with("+ ") || self.chs.starts_with("- ") {
-            return ListBlock(self.parse_list(0));
+            return Ok(ListBlock(self.parse_list(0)?));
         }
 
         // embed
         if self.starts_with_next("@[") {
-            return self.parse_embed().unwrap();
+            return self.parse_embed();
         }
 
         // table
         if self.chs.starts_with("|") {
-            return self.parse_table().unwrap();
+            return self.parse_table();
         }
 
         // math block
@@ -101,15 +103,15 @@ impl<'a> Parser<'a> {
 
         // reference
         if self.starts_with_next("[^]") {
-            return self.catch_refs();
+            return Ok(self.catch_refs());
         }
 
         // paragraph
         self.parse_paragraph()
     }
 
-    fn parse_header(&mut self, level: u32) -> Block<'a> {
-        let header = self.parse_inline();
+    fn parse_header(&mut self, level: u32) -> Result<Block<'a>, SyntaxError> {
+        let header = self.parse_inline()?;
 
         let mut header_toc = Vec::new();
         for span in &header.0 {
@@ -152,18 +154,18 @@ impl<'a> Parser<'a> {
                 list: List { ordered: true, items: Vec::new() },
             });
         }
-        Header { header, level, id: header_id }
+        Ok(Header { header, level, id: header_id })
     }
 
-    fn parse_blockquote(&mut self) -> Block<'a> {
+    fn parse_blockquote(&mut self) -> Result<Block<'a>, SyntaxError> {
         let mut lines = Vec::new();
         while !self.starts_with_next("<<") {
-            lines.push(self.parse_inline());
+            lines.push(self.parse_inline()?);
         }
-        Blockquote { lines }
+        Ok(Blockquote { lines })
     }
 
-    fn parse_list(&mut self, min_indent: usize) -> List<'a> {
+    fn parse_list(&mut self, min_indent: usize) -> Result<List<'a>, SyntaxError> {
         let mut ordered = false;
         let mut items = Vec::new();
         while !self.chs.is_empty() {
@@ -176,8 +178,8 @@ impl<'a> Parser<'a> {
                 if self.starts_with_next("- ") {
                     ordered = false;
                     items.push(ListItem {
-                        item: self.parse_inline(),
-                        list: self.parse_list(indent + 1),
+                        item: self.parse_inline()?,
+                        list: self.parse_list(indent + 1)?,
                     });
                     continue;
                 }
@@ -185,15 +187,15 @@ impl<'a> Parser<'a> {
                 if self.starts_with_next("+ ") {
                     ordered = true;
                     items.push(ListItem {
-                        item: self.parse_inline(),
-                        list: self.parse_list(indent + 1),
+                        item: self.parse_inline()?,
+                        list: self.parse_list(indent + 1)?,
                     });
                     continue;
                 }
             }
             break;
         }
-        List { ordered, items }
+        Ok(List { ordered, items })
     }
 
     fn parse_embed(&mut self) -> Result<Block<'a>, SyntaxError> {
@@ -238,19 +240,20 @@ impl<'a> Parser<'a> {
         Ok(Some(row))
     }
 
-    fn parse_math_block(&mut self) -> Block<'a> {
-        let math = self.read_until_trim(&["$$"]).unwrap();
-        MathBlock { math }
+    fn parse_math_block(&mut self) -> Result<Block<'a>, SyntaxError> {
+        let math = self.read_until_trim(&["$$"])?;
+        Ok(MathBlock { math })
     }
 
-    fn parse_code_block(&mut self) -> Block<'a> {
-        let lang = self.read_until_trim(&["\n", "\r\n"]).unwrap();
-        let code = self.read_until_trim(&["```"]).unwrap();
-        CodeBlock { lang, code }
+    fn parse_code_block(&mut self) -> Result<Block<'a>, SyntaxError> {
+        let lang = self.read_until_trim(&["\n", "\r\n"])?;
+        let code = self.read_until_trim(&["```"])?;
+        Ok(CodeBlock { lang, code })
     }
 
-    fn parse_paragraph(&mut self) -> Block<'a> {
-        Paragraph { text: self.parse_inline() }
+    fn parse_paragraph(&mut self) -> Result<Block<'a>, SyntaxError> {
+        let text = self.parse_inline()?;
+        Ok(Paragraph { text })
     }
 
     fn catch_refs(&mut self) -> Block<'a> {
@@ -260,12 +263,12 @@ impl<'a> Parser<'a> {
         Ref(refs)
     }
 
-    fn parse_inline(&mut self) -> Inline<'a> {
+    fn parse_inline(&mut self) -> Result<Inline<'a>, SyntaxError> {
         let mut text = Vec::new();
         while !self.is_eol() {
-            text.push(self.parse_cite().unwrap());
+            text.push(self.parse_cite()?);
         }
-        Inline(text)
+        Ok(Inline(text))
     }
 
     fn parse_cite(&mut self) -> Result<Span<'a>, SyntaxError> {

@@ -23,7 +23,10 @@ fn main(){
         return;
     };
 
-    let (title, toc, content) = parse(&doc);
+    let (title, toc, content) = match parse(&doc) {
+        Ok((title, toc, content)) => (title, toc, content),
+        Err(err) => { println!("Syntax Error: {:?}", err); return; },
+    };
 
     let Ok(temp) = read_template(temp_path) else {
         println!("could not open or read the template file.");
