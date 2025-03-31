@@ -25,7 +25,7 @@ fn main(){
 
     let (title, toc, content) = match parse(&doc) {
         Ok((title, toc, content)) => (title, toc, content),
-        Err(err) => { println!("Syntax Error: {:?}", err); return; },
+        Err(err) => { println!("Syntax Error: {err}"); return; },
     };
 
     let Ok(temp) = read_template(temp_path) else {

@@ -225,7 +225,7 @@ impl<'a> Parser<'a> {
 
     fn parse_table_row(&mut self) -> Result<Option<Vec<Inline<'a>>>, SyntaxError> {
         if self.starts_with_next("-") {
-            self.read_until_trim(&["\n", "\r\n"]).unwrap();
+            self.read_until_trim(&["\n", "\r\n"])?;
             return Ok(None);
         }
         if !self.starts_with_next("|") {

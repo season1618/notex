@@ -111,7 +111,7 @@ impl<'a> std::fmt::Display for MathText<'a> {
     }
 }
 
-impl std::fmt::Debug for SyntaxError {
+impl std::fmt::Display for SyntaxError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             Expect(terms) => write!(f, "{:?} is expected", terms),
