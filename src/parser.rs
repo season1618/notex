@@ -326,8 +326,12 @@ impl<'a> Parser<'a> {
         }
 
         // text
-        let text = self.read_until(&["|", "**", "__", "[", "]", "$", "`", "\n", "\r\n"]).into();
-        Ok(Text { text })
+        let text: std::borrow::Cow<'a, str> = self.read_until(&["|", "**", "__", "[", "]", "$", "`", "\n", "\r\n"]).into();
+        if !text.is_empty() {
+            return Ok(Text { text });
+        }
+
+        Err(Empty)
     }
 
     fn read_until(&mut self, terms: &[&str]) -> &'a str {

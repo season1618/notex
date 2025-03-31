@@ -61,6 +61,7 @@ pub enum Elem {
 
 pub enum SyntaxError {
     Expect(&'static [&'static str]),
+    Empty,
 }
 
 impl<'a> std::fmt::Display for Inline<'a> {
@@ -115,6 +116,7 @@ impl std::fmt::Display for SyntaxError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             Expect(terms) => write!(f, "{:?} is expected", terms),
+            Empty => write!(f, "cannot parse because of unvalid character"),
         }
     }
 }
