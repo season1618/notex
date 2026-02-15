@@ -8,6 +8,7 @@ pub enum Block<'a> {
     Blockquote { lines: Vec<Inline<'a>> },
     ListBlock(List<'a>),
     Image { title: Inline<'a>, url: &'a str },
+    Video { title: Inline<'a>, url: &'a str },
     LinkCard { title: String, image: Option<String>, url: &'a str, description: Option<String>, site_name: Option<String> },
     Table { head: Vec<Vec<Inline<'a>>>, body: Vec<Vec<Inline<'a>>> },
     MathBlock { math: &'a str },

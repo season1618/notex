@@ -55,12 +55,13 @@ blockquote, ul, ol, p {
     margin-bottom: 0.5em;
 }
 
-.image {
+.image, .video {
     text-align: center;
 }
 
-img {
+img, video {
     width: 70%;
+    background-color: transparent;
 }
 
 .linkcard {

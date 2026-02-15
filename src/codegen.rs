@@ -55,6 +55,7 @@ impl<'a> CodeGen<'a> {
                 ListBlock(list) => self.gen_list(list, indent)?,
                 Table { head, body } => self.gen_table(head, body, indent)?,
                 Image { title, url } => self.gen_image(title, url, indent)?,
+                Video { title, url } => self.gen_video(title, url, indent)?,
                 LinkCard { title, image, url, description, site_name } => self.gen_link_card(title, image, url, description, site_name, indent)?,
                 MathBlock { math } => self.gen_math_block(math, indent)?,
                 CodeBlock { lang, code } => self.gen_code_block(lang, code, indent)?,
@@ -101,6 +102,14 @@ impl<'a> CodeGen<'a> {
         let indent = " ".repeat(indent);
         writeln!(self.dest, "{indent}<div class=\"image\">")?;
         writeln!(self.dest, "{indent}  <img src=\"{url}\">")?;
+        writeln!(self.dest, "{indent}  <p class=\"caption\">{title}</p>")?;
+        writeln!(self.dest, "{indent}</div>")
+    }
+
+    fn gen_video(&mut self, title: &Inline, url: &str, indent: usize) -> Result<(), io::Error> {
+        let indent = " ".repeat(indent);
+        writeln!(self.dest, "{indent}<div class=\"video\">")?;
+        writeln!(self.dest, "{indent}  <video controls src=\"{url}\"></video>")?;
         writeln!(self.dest, "{indent}  <p class=\"caption\">{title}</p>")?;
         writeln!(self.dest, "{indent}</div>")
     }

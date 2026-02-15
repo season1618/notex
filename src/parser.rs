@@ -1,6 +1,6 @@
-use tokio;
 use regex::Regex;
 use reqwest::{self, header};
+use tokio;
 
 use crate::data::*;
 use crate::multiset::MultiSet;
@@ -17,7 +17,8 @@ pub fn parse(doc: &str) -> Result<(String, List, Vec<Block>), SyntaxError> {
 pub struct Parser<'a> {
     chs: &'a str,
     headers: MultiSet<String>,
-    notes: Vec<(Inline<'a>, usize)>, note_id: usize,
+    notes: Vec<(Inline<'a>, usize)>,
+    note_id: usize,
     title: String,
     toc: List<'a>,
     content: Vec<Block<'a>>,
@@ -28,9 +29,13 @@ impl<'a> Parser<'a> {
         Parser {
             chs: doc,
             headers: MultiSet::new(),
-            notes: Vec::new(), note_id: 0,
+            notes: Vec::new(),
+            note_id: 0,
             title: String::new(),
-            toc: List { ordered: true, items: Vec::new() },
+            toc: List {
+                ordered: true,
+                items: Vec::new(),
+            },
             content: Vec::new(),
         }
     }
@@ -39,8 +44,10 @@ impl<'a> Parser<'a> {
         while !self.chs.is_empty() {
             let block = self.parse_block()?;
             match block {
-                Paragraph { text } if text.0.is_empty() => {},
-                _ => { self.content.push(block); },
+                Paragraph { text } if text.0.is_empty() => {}
+                _ => {
+                    self.content.push(block);
+                }
             }
         }
 
@@ -116,12 +123,12 @@ impl<'a> Parser<'a> {
         let mut header_toc = Vec::new();
         for span in &header.0 {
             match span {
-                Cite { .. } => {},
+                Cite { .. } => {}
                 Link { text, .. } => {
                     for span in &text.0 {
                         header_toc.push(span.clone());
                     }
-                },
+                }
                 _ => header_toc.push(span.clone()),
             }
         }
@@ -132,7 +139,7 @@ impl<'a> Parser<'a> {
                 Math { math } => header_id.push_str(math),
                 Code { code } => header_id.push_str(code),
                 Text { text } => header_id.push_str(text),
-                _ => {},
+                _ => {}
             }
         }
 
@@ -150,11 +157,21 @@ impl<'a> Parser<'a> {
                 cur = &mut cur.items.last_mut().unwrap().list;
             }
             cur.items.push(ListItem {
-                item: Inline(vec![ Link { text: Inline(header_toc), url: format!("#{}", &header_id).into() } ]),
-                list: List { ordered: true, items: Vec::new() },
+                item: Inline(vec![Link {
+                    text: Inline(header_toc),
+                    url: format!("#{}", &header_id).into(),
+                }]),
+                list: List {
+                    ordered: true,
+                    items: Vec::new(),
+                },
             });
         }
-        Ok(Header { header, level, id: header_id })
+        Ok(Header {
+            header,
+            level,
+            id: header_id,
+        })
     }
 
     fn parse_blockquote(&mut self) -> Result<Block<'a>, SyntaxError> {
@@ -205,9 +222,18 @@ impl<'a> Parser<'a> {
         if url.ends_with(".png") || url.ends_with(".jpg") {
             let title = Inline(text);
             Ok(Image { title, url })
+        } else if url.ends_with(".mp4") {
+            let title = Inline(text);
+            Ok(Video { title, url })
         } else {
             let (title, image, description, site_name) = get_ogp_info(&url);
-            Ok(LinkCard { title, image, url, description, site_name })
+            Ok(LinkCard {
+                title,
+                image,
+                url,
+                description,
+                site_name,
+            })
         }
     }
 
@@ -286,13 +312,18 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_link(&mut self) -> Result<Span<'a>, SyntaxError> {
-        if self.starts_with_next("[") { // link
+        if self.starts_with_next("[") {
+            // link
             let text = self.parse_until_trim(Self::parse_emph, &["]("])?;
             let url: std::borrow::Cow<'a, str> = self.read_until_trim(&[")"])?.into();
 
             let text = if text.is_empty() {
-                Inline(vec![ Text { text: get_title(url.as_ref()).into() } ])
-            } else { Inline(text) };
+                Inline(vec![Text {
+                    text: get_title(url.as_ref()).into(),
+                }])
+            } else {
+                Inline(text)
+            };
 
             Ok(Link { text, url })
         } else {
@@ -326,7 +357,9 @@ impl<'a> Parser<'a> {
         }
 
         // text
-        let text: std::borrow::Cow<'a, str> = self.read_until(&["|", "**", "__", "[", "]", "$", "`", "\n", "\r\n"]).into();
+        let text: std::borrow::Cow<'a, str> = self
+            .read_until(&["|", "**", "__", "[", "]", "$", "`", "\n", "\r\n"])
+            .into();
         if !text.is_empty() {
             return Ok(Text { text });
         }
@@ -377,11 +410,15 @@ impl<'a> Parser<'a> {
             }
             chs.next();
         }
-        
+
         Err(Expect(terms))
     }
 
-    fn parse_until_trim<T>(&mut self, mut parser: impl FnMut(&mut Self) -> Result<T, SyntaxError>, terms: &'static [&str]) -> Result<Vec<T>, SyntaxError> {
+    fn parse_until_trim<T>(
+        &mut self,
+        mut parser: impl FnMut(&mut Self) -> Result<T, SyntaxError>,
+        terms: &'static [&str],
+    ) -> Result<Vec<T>, SyntaxError> {
         let mut res = Vec::new();
         while !self.chs.is_empty() {
             if let Some(term) = terms.iter().find(|&term| self.chs.starts_with(term)) {
@@ -411,7 +448,15 @@ impl<'a> Parser<'a> {
 #[tokio::main]
 async fn get_title(url: &str) -> String {
     let client = reqwest::Client::new();
-    let Ok(res) = client.get(url).header(header::ACCEPT, header::HeaderValue::from_str("text/html").unwrap()).send().await else {
+    let Ok(res) = client
+        .get(url)
+        .header(
+            header::ACCEPT,
+            header::HeaderValue::from_str("text/html").unwrap(),
+        )
+        .send()
+        .await
+    else {
         return String::new();
     };
     let Ok(body) = res.text().await else {
@@ -432,7 +477,15 @@ async fn get_ogp_info(url: &str) -> (String, Option<String>, Option<String>, Opt
     let mut site_name = None;
 
     let client = reqwest::Client::new();
-    let Ok(res) = client.get(url).header(header::ACCEPT, header::HeaderValue::from_str("text/html").unwrap()).send().await else {
+    let Ok(res) = client
+        .get(url)
+        .header(
+            header::ACCEPT,
+            header::HeaderValue::from_str("text/html").unwrap(),
+        )
+        .send()
+        .await
+    else {
         return (title, image, description, site_name);
     };
     let Ok(body) = res.text().await else {
@@ -442,11 +495,19 @@ async fn get_ogp_info(url: &str) -> (String, Option<String>, Option<String>, Opt
     let regex = Regex::new("property=\"og:([^\"]*)\" content=\"([^\"]*)\"").unwrap();
     for caps in regex.captures_iter(&body) {
         match &caps[1] {
-            "title" => { title = caps[2].to_string(); },
-            "image" => { image = Some(caps[2].to_string()); },
-            "description" => { description = Some(caps[2].to_string()); },
-            "site_name" => { site_name = Some(caps[2].to_string()); },
-            _ => {},
+            "title" => {
+                title = caps[2].to_string();
+            }
+            "image" => {
+                image = Some(caps[2].to_string());
+            }
+            "description" => {
+                description = Some(caps[2].to_string());
+            }
+            "site_name" => {
+                site_name = Some(caps[2].to_string());
+            }
+            _ => {}
         }
     }
 
